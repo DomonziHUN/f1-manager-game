@@ -1,0 +1,229 @@
+[gd_scene load_steps=2 format=3 uid="uid://raceprep123"]
+
+[ext_resource type="Script" path="res://scripts/race/RacePreparationController.gd" id="1_raceprep"]
+
+[node name="RacePreparationScene" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1_raceprep")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.05, 0.05, 0.1, 1)
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 50.0
+offset_top = 50.0
+offset_right = -50.0
+offset_bottom = -50.0
+
+[node name="Header" type="Panel" parent="VBoxContainer"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 120)
+
+[node name="HeaderContent" type="VBoxContainer" parent="VBoxContainer/Header"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = 20.0
+offset_right = -20.0
+offset_bottom = -20.0
+
+[node name="Title" type="Label" parent="VBoxContainer/Header/HeaderContent"]
+layout_mode = 2
+text = "🏁 Race Preparation"
+horizontal_alignment = 1
+
+[node name="TrackInfo" type="Label" parent="VBoxContainer/Header/HeaderContent"]
+layout_mode = 2
+text = "Track: Spa-Francorchamps (12 laps)"
+horizontal_alignment = 1
+
+[node name="WeatherInfo" type="Label" parent="VBoxContainer/Header/HeaderContent"]
+layout_mode = 2
+text = "☀️ Weather: Dry"
+horizontal_alignment = 1
+
+[node name="TimerLabel" type="Label" parent="VBoxContainer/Header/HeaderContent"]
+layout_mode = 2
+text = "Time remaining: 30s"
+horizontal_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="MainContent" type="HBoxContainer" parent="VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="LeftPanel" type="VBoxContainer" parent="VBoxContainer/MainContent"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="TireSelection" type="Panel" parent="VBoxContainer/MainContent/LeftPanel"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 400)
+
+[node name="TireContent" type="VBoxContainer" parent="VBoxContainer/MainContent/LeftPanel/TireSelection"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = 20.0
+offset_right = -20.0
+offset_bottom = -20.0
+
+[node name="TireTitle" type="Label" parent="VBoxContainer/MainContent/LeftPanel/TireSelection/TireContent"]
+layout_mode = 2
+text = "🛞 Starting Tire Compound"
+
+[node name="DryTires" type="VBoxContainer" parent="VBoxContainer/MainContent/LeftPanel/TireSelection/TireContent"]
+layout_mode = 2
+
+[node name="DryLabel" type="Label" parent="VBoxContainer/MainContent/LeftPanel/TireSelection/TireContent/DryTires"]
+layout_mode = 2
+text = "☀️ Dry Weather Tires:"
+
+[node name="SoftTire" type="Button" parent="VBoxContainer/MainContent/LeftPanel/TireSelection/TireContent/DryTires"]
+layout_mode = 2
+text = "🔴 Soft (Fastest, High Wear)"
+toggle_mode = true
+
+[node name="MediumTire" type="Button" parent="VBoxContainer/MainContent/LeftPanel/TireSelection/TireContent/DryTires"]
+layout_mode = 2
+text = "🟡 Medium (Balanced)"
+toggle_mode = true
+
+[node name="HardTire" type="Button" parent="VBoxContainer/MainContent/LeftPanel/TireSelection/TireContent/DryTires"]
+layout_mode = 2
+text = "⚪ Hard (Slowest, Low Wear)"
+toggle_mode = true
+
+[node name="HSeparator4" type="HSeparator" parent="VBoxContainer/MainContent/LeftPanel/TireSelection/TireContent"]
+layout_mode = 2
+
+[node name="WetTires" type="VBoxContainer" parent="VBoxContainer/MainContent/LeftPanel/TireSelection/TireContent"]
+layout_mode = 2
+
+[node name="WetLabel" type="Label" parent="VBoxContainer/MainContent/LeftPanel/TireSelection/TireContent/WetTires"]
+layout_mode = 2
+text = "🌧️ Wet Weather Tires:"
+
+[node name="InterTire" type="Button" parent="VBoxContainer/MainContent/LeftPanel/TireSelection/TireContent/WetTires"]
+layout_mode = 2
+text = "🟢 Intermediate (Light Rain)"
+toggle_mode = true
+
+[node name="WetTire" type="Button" parent="VBoxContainer/MainContent/LeftPanel/TireSelection/TireContent/WetTires"]
+layout_mode = 2
+text = "🔵 Full Wet (Heavy Rain)"
+toggle_mode = true
+
+[node name="TireInfo" type="Label" parent="VBoxContainer/MainContent/LeftPanel/TireSelection/TireContent"]
+layout_mode = 2
+text = "Select your starting tire compound based on weather conditions"
+
+[node name="VSeparator" type="VSeparator" parent="VBoxContainer/MainContent"]
+layout_mode = 2
+
+[node name="RightPanel" type="VBoxContainer" parent="VBoxContainer/MainContent"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="OpponentInfo" type="Panel" parent="VBoxContainer/MainContent/RightPanel"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 150)
+
+[node name="OpponentContent" type="VBoxContainer" parent="VBoxContainer/MainContent/RightPanel/OpponentInfo"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = 20.0
+offset_right = -20.0
+offset_bottom = -20.0
+
+[node name="OpponentTitle" type="Label" parent="VBoxContainer/MainContent/RightPanel/OpponentInfo/OpponentContent"]
+layout_mode = 2
+text = "👥 Opponent"
+
+[node name="OpponentName" type="Label" parent="VBoxContainer/MainContent/RightPanel/OpponentInfo/OpponentContent"]
+layout_mode = 2
+text = "Player2"
+
+[node name="OpponentLeague" type="Label" parent="VBoxContainer/MainContent/RightPanel/OpponentInfo/OpponentContent"]
+layout_mode = 2
+text = "Bronze League"
+
+[node name="OpponentStatus" type="Label" parent="VBoxContainer/MainContent/RightPanel/OpponentInfo/OpponentContent"]
+layout_mode = 2
+text = "⏳ Preparing..."
+
+[node name="HSeparator2" type="HSeparator" parent="VBoxContainer/MainContent/RightPanel"]
+layout_mode = 2
+
+[node name="PilotInfo" type="Panel" parent="VBoxContainer/MainContent/RightPanel"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 200)
+
+[node name="PilotContent" type="VBoxContainer" parent="VBoxContainer/MainContent/RightPanel/PilotInfo"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = 20.0
+offset_right = -20.0
+offset_bottom = -20.0
+
+[node name="PilotTitle" type="Label" parent="VBoxContainer/MainContent/RightPanel/PilotInfo/PilotContent"]
+layout_mode = 2
+text = "👨‍✈️ Your Pilots"
+
+[node name="Pilot1Info" type="Label" parent="VBoxContainer/MainContent/RightPanel/PilotInfo/PilotContent"]
+layout_mode = 2
+text = "Pilot 1: Loading..."
+
+[node name="Pilot2Info" type="Label" parent="VBoxContainer/MainContent/RightPanel/PilotInfo/PilotContent"]
+layout_mode = 2
+text = "Pilot 2: Loading..."
+
+[node name="HSeparator3" type="HSeparator" parent="VBoxContainer"]
+layout_mode = 2
+
+[node name="BottomPanel" type="Panel" parent="VBoxContainer"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 80)
+
+[node name="BottomContent" type="HBoxContainer" parent="VBoxContainer/BottomPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = 20.0
+offset_right = -20.0
+offset_bottom = -20.0
+
+[node name="StatusLabel" type="Label" parent="VBoxContainer/BottomPanel/BottomContent"]
+layout_mode = 2
+text = "Select your tire compound based on weather"
+size_flags_horizontal = 3
+
+[node name="ReadyButton" type="Button" parent="VBoxContainer/BottomPanel/BottomContent"]
+layout_mode = 2
+text = "Ready!"
+disabled = true

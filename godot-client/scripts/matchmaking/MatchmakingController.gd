@@ -179,9 +179,15 @@ func _on_cancel_pressed():
 			WebSocketManager.leave_queue()
 
 func _on_start_race_pressed():
-	print("🏎️ Starting race...")
-	# TODO: Go to race scene
-	status_label.text = "🏁 Starting race... (Race scene coming soon!)"
+	print("🏎️ Starting race preparation...")
+	
+	# Store match data in GameManager
+	if GameManager.has_method("set_current_match"):
+		GameManager.set_current_match(match_data)
+	
+	# Go to race preparation scene
+	var race_prep_scene = preload("res://scenes/race/RacePreparationScene.tscn")
+	get_tree().change_scene_to_packed(race_prep_scene)
 
 # UI Updates
 func _show_match_found(data: Dictionary):

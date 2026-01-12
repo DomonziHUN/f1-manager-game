@@ -1,0 +1,45 @@
+[gd_scene load_steps=2 format=3 uid="uid://bem347bienj11"]
+
+[ext_resource type="Script" path="res://scripts/race/QualifyingController.gd" id="1_qualifying"]
+
+[node name="QualifyingScene" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1_qualifying")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.1, 0.1, 0.15, 1)
+
+[node name="CenterContainer" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer"]
+layout_mode = 2
+
+[node name="Title" type="Label" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+text = "🏁 Qualifying Session"
+horizontal_alignment = 1
+
+[node name="StatusLabel" type="Label" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+text = "Simulating qualifying..."
+horizontal_alignment = 1
+
+[node name="ProgressBar" type="ProgressBar" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+custom_minimum_size = Vector2(400, 20)
+
+[node name="ResultsLabel" type="Label" parent="CenterContainer/VBoxContainer"]
+layout_mode = 2
+text = "Results will appear here..."
+horizontal_alignment = 1 

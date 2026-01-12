@@ -5,6 +5,8 @@ var websocket: WebSocketPeer
 var websocket_url = "ws://localhost:3000"
 var is_connected = false
 var is_authenticated = false
+var connection_timeout = 10.0
+var connection_timer = 0.0
 
 # Reconnection
 var reconnect_timer: Timer
@@ -44,11 +46,12 @@ func connect_to_server():
 	var error = websocket.connect_to_url(websocket_url)
 	
 	if error != OK:
-		print("❌ Failed to connect to WebSocket: " + str(error))
+		print("❌ Failed to initiate WebSocket connection: " + str(error))
 		_handle_connection_error()
 		return
 	
-	print("⏳ WebSocket connection initiated...")
+	connection_timer = 0.0
+	print("⏳ WebSocket connection initiated, waiting for response...")
 
 func disconnect_from_server():
 	if websocket:
@@ -64,8 +67,14 @@ func authenticate(token: String):
 		print("❌ Cannot authenticate: not connected")
 		return
 	
-	print("🔐 Authenticating with WebSocket...")
-	_send_message("authenticate", {"token": token})
+	print("🔐 Sending authentication with token: " + token.substr(0, 20) + "...")
+	
+	# Send in the correct wrapper format
+	var auth_message = {
+		"event": "authenticate",
+		"data": {"token": token}
+	}
+	websocket.send_text(JSON.stringify(auth_message))
 
 func join_queue():
 	if not is_authenticated:
@@ -98,8 +107,15 @@ func _process(delta):
 		
 		match state:
 			WebSocketPeer.STATE_CONNECTING:
-				# Still connecting
-				pass
+				connection_timer += delta
+				if connection_timer > connection_timeout:
+					print("❌ WebSocket connection timeout after " + str(connection_timeout) + " seconds")
+					_handle_connection_error()
+					return
+				
+				# Debug: print every 2 seconds while connecting
+				if int(connection_timer) % 2 == 0 and connection_timer - delta < int(connection_timer):
+					print("⏳ Still connecting... (" + str(int(connection_timer)) + "s)")
 			
 			WebSocketPeer.STATE_OPEN:
 				if not is_connected:
@@ -109,13 +125,16 @@ func _process(delta):
 				while websocket.get_available_packet_count():
 					var packet = websocket.get_packet()
 					var message_text = packet.get_string_from_utf8()
+					print("📥 Raw message: " + message_text)
 					_handle_message(message_text)
 			
 			WebSocketPeer.STATE_CLOSING:
-				# Connection closing
-				pass
+				print("🔄 WebSocket closing...")
 			
 			WebSocketPeer.STATE_CLOSED:
+				var close_code = websocket.get_close_code()
+				var close_reason = websocket.get_close_reason()
+				print("❌ WebSocket closed. Code: " + str(close_code) + ", Reason: " + close_reason)
 				if is_connected:
 					_handle_connection_lost()
 
@@ -123,7 +142,8 @@ func _handle_connection_success():
 	is_connected = true
 	reconnect_attempts = 0
 	reconnect_timer.stop()
-	print("✅ WebSocket connected successfully")
+	connection_timer = 0.0
+	print("✅ WebSocket connected successfully!")
 	connected.emit()
 
 func _handle_connection_lost():
@@ -135,6 +155,10 @@ func _handle_connection_lost():
 
 func _handle_connection_error():
 	print("❌ WebSocket connection error")
+	if websocket:
+		websocket.close()
+	is_connected = false
+	is_authenticated = false
 	_attempt_reconnect()
 
 func _attempt_reconnect():
@@ -166,34 +190,70 @@ func _send_message(event: String, data: Dictionary):
 	websocket.send_text(json_string)
 	print("📤 Sent: " + event)
 
-# A _handle_message függvényben cseréld le ezt:
 func _handle_message(message_text: String):
-	print("📥 Received: " + message_text)
-	
 	var json = JSON.new()
 	var parse_result = json.parse(message_text)
 	
 	if parse_result != OK:
-		print("❌ Failed to parse WebSocket message: " + message_text)
+		print("❌ Failed to parse JSON: " + message_text)
 		return
 	
 	var data = json.data
+	print("📨 Parsed data: " + str(data))
 	
-	# A backend közvetlenül küldi az event nevét, nem wrapper-ben
-	# Próbáljuk mindkét formátumot
-	if data.has("event"):
-		# Wrapper formátum: {"event": "authenticated", "data": {...}}
+	# Handle different message types based on Socket.IO format
+	if data.has("message"):
+		# Welcome message or similar
+		print("💬 Server message: " + str(data.message))
+	elif data.has("success"):
+		# Authentication response format
+		if data.success:
+			is_authenticated = true
+			print("✅ Authentication successful")
+			authenticated.emit(data)
+		else:
+			print("❌ Authentication failed: " + str(data.get("error", "Unknown error")))
+			auth_error.emit(str(data.get("error", "Unknown error")))
+	elif data.has("event"):
+		# Wrapper formátum: {"event": "queue_joined", "data": {...}}
 		var event = data.get("event", "")
 		var payload = data.get("data", {})
 		_handle_event(event, payload)
 	else:
-		# Közvetlen formátum: socket.emit('authenticated', {...})
-		# Ebben az esetben az egész data a payload
-		# De nem tudjuk az event nevét, ezért a backend-et kell javítani
-		print("⚠️ Received data without event wrapper: " + str(data))
+		# Közvetlen Socket.IO emit formátum
+		# Próbáljuk kitalálni az event típusát a tartalom alapján
+		if data.has("queueId"):
+			# queue_joined event
+			print("✅ Joined matchmaking queue")
+			queue_joined.emit(data)
+		elif data.has("matchId"):
+			# match_found event
+			print("🎉 Match found!")
+			match_found.emit(data)
+		elif data.has("playersInQueue"):
+			# queue_update event
+			print("📊 Queue update: " + str(data))
+			queue_update.emit(data)
+		elif data.has("error"):
+			# Error event
+			var error = data.get("error", "Unknown error")
+			print("❌ Error: " + error)
+			queue_error.emit(error)
+		else:
+			print("⚠️ Unknown message format: " + str(data))
 
 func _handle_event(event: String, payload: Dictionary):
 	match event:
+		"welcome":
+			print("💬 Server welcome: " + str(payload.get("message", "")))
+			# Don't emit signal, just log
+		
+		"error":
+			var error = payload.get("error", "Unknown error")
+			print("❌ Server error: " + error)
+			# Handle as queue error for now
+			queue_error.emit(error)
+		
 		"authenticated":
 			is_authenticated = true
 			print("✅ WebSocket authentication successful")
