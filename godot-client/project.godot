@@ -1,0 +1,17 @@
+; Engine configuration file.
+config_version=5
+
+[application]
+config/name="F1 Manager Game"
+run/main_scene="res://scenes/Main.tscn"
+config/features=PackedStringArray("4.2", "Forward+")
+
+[autoload]
+GameManager="*res://scripts/autoload/GameManager.gd"
+NetworkManager="*res://scripts/autoload/NetworkManager.gd"
+
+[display]
+window/size/viewport_width=1280
+window/size/viewport_height=720
+window/stretch/mode="viewport"
+window/stretch/aspect="expand"
