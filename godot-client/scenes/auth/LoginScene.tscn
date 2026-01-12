@@ -1,0 +1,92 @@
+[gd_scene load_steps=2 format=3 uid="uid://bvw8qxvw2q3qpd"]
+
+[ext_resource type="Script" path="res://scripts/auth/LoginController.gd" id="1_0x8vw"]
+
+[node name="LoginScene" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1_0x8vw")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.05, 0.05, 0.1, 1)
+
+[node name="CenterContainer" type="CenterContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="LoginPanel" type="Panel" parent="CenterContainer"]
+layout_mode = 2
+custom_minimum_size = Vector2(400, 500)
+
+[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer/LoginPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = 20.0
+offset_right = -20.0
+offset_bottom = -20.0
+
+[node name="Title" type="Label" parent="CenterContainer/LoginPanel/VBoxContainer"]
+layout_mode = 2
+text = "🏎️ F1 Manager"
+horizontal_alignment = 1
+
+[node name="Subtitle" type="Label" parent="CenterContainer/LoginPanel/VBoxContainer"]
+layout_mode = 2
+text = "Login to your account"
+horizontal_alignment = 1
+
+[node name="HSeparator" type="HSeparator" parent="CenterContainer/LoginPanel/VBoxContainer"]
+layout_mode = 2
+
+[node name="EmailLabel" type="Label" parent="CenterContainer/LoginPanel/VBoxContainer"]
+layout_mode = 2
+text = "Email:"
+
+[node name="EmailInput" type="LineEdit" parent="CenterContainer/LoginPanel/VBoxContainer"]
+layout_mode = 2
+placeholder_text = "Enter your email"
+
+[node name="PasswordLabel" type="Label" parent="CenterContainer/LoginPanel/VBoxContainer"]
+layout_mode = 2
+text = "Password:"
+
+[node name="PasswordInput" type="LineEdit" parent="CenterContainer/LoginPanel/VBoxContainer"]
+layout_mode = 2
+placeholder_text = "Enter your password"
+secret = true
+
+[node name="HSeparator2" type="HSeparator" parent="CenterContainer/LoginPanel/VBoxContainer"]
+layout_mode = 2
+
+[node name="LoginButton" type="Button" parent="CenterContainer/LoginPanel/VBoxContainer"]
+layout_mode = 2
+text = "Login"
+
+[node name="RegisterButton" type="Button" parent="CenterContainer/LoginPanel/VBoxContainer"]
+layout_mode = 2
+text = "Create Account"
+
+[node name="HSeparator3" type="HSeparator" parent="CenterContainer/LoginPanel/VBoxContainer"]
+layout_mode = 2
+
+[node name="StatusLabel" type="Label" parent="CenterContainer/LoginPanel/VBoxContainer"]
+layout_mode = 2
+text = "Ready to login"
+horizontal_alignment = 1
+
+[node name="LoadingSpinner" type="Label" parent="CenterContainer/LoginPanel/VBoxContainer"]
+layout_mode = 2
+text = "🔄 Logging in..."
+horizontal_alignment = 1
+visible = false 

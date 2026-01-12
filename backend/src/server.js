@@ -1,29 +1,29 @@
 require('dotenv').config();
+
 const express = require('express');
-const { createServer } = require('http');
-const { Server } = require('socket.io');
 const cors = require('cors');
+const http = require('http');
+const { Server } = require('socket.io');
+
+// Database
+const { initialize: initDB } = require('./config/database');
 
 // Routes
 const authRoutes = require('./routes/auth');
 const gameRoutes = require('./routes/game');
-const raceRoutes = require('./routes/race');
+const matchmakingRoutes = require('./routes/matchmaking');
 
-// Services
-const MatchmakingService = require('./services/MatchmakingService');
-const RaceService = require('./services/RaceService');
-
-// Database
-const db = require('./config/database');
+// WebSocket
+const SocketHandler = require('./websocket/socketHandler'); // ← ÚJ!
 
 const app = express();
-const httpServer = createServer(app);
+const server = http.createServer(app);
 
-// Socket.IO setup
-const io = new Server(httpServer, {
+// Socket.io setup
+const io = new Server(server, {
     cors: {
-        origin: "*",
-        methods: ["GET", "POST"]
+        origin: '*',
+        methods: ['GET', 'POST']
     }
 });
 
@@ -31,64 +31,53 @@ const io = new Server(httpServer, {
 app.use(cors());
 app.use(express.json());
 
-// Initialize services
-const matchmakingService = new MatchmakingService(io);
-const raceService = new RaceService(io);
+// Initialize database
+initDB();
 
-// Make services available to routes
-app.set('matchmakingService', matchmakingService);
-app.set('raceService', raceService);
-
-// Routes
+// API Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/game', gameRoutes);
-app.use('/api/race', raceRoutes);
+app.use('/api/matchmaking', matchmakingRoutes);
+
+// Initialize WebSocket Handler
+const socketHandler = new SocketHandler(server); // ← ÚJ!
 
 // Health check
-app.get('/api/health', (req, res) => {
+app.get('/health', (req, res) => {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
 });
 
-// Socket.IO connection handling
-io.on('connection', (socket) => {
-    console.log(`Client connected: ${socket.id}`);
-    
-    // Matchmaking events
-    socket.on('matchmaking:join', (data) => {
-        matchmakingService.addToQueue(socket, data);
-    });
-    
-    socket.on('matchmaking:leave', () => {
-        matchmakingService.removeFromQueue(socket);
-    });
-    
-    // Race events
-    socket.on('race:join', (data) => {
-        raceService.joinRace(socket, data);
-    });
-    
-    socket.on('race:command', (data) => {
-        raceService.handleCommand(socket, data);
-    });
-    
-    socket.on('disconnect', () => {
-        console.log(`Client disconnected: ${socket.id}`);
-        matchmakingService.removeFromQueue(socket);
-        raceService.handleDisconnect(socket);
-    });
+// 404 handler
+app.use((req, res) => {
+    res.status(404).json({ success: false, message: 'Endpoint not found' });
 });
 
-// Initialize database and start server
-db.initialize();
+// Error handler
+app.use((err, req, res, next) => {
+    console.error('Error:', err);
+    res.status(500).json({ success: false, message: 'Internal server error' });
+});
 
+// Store io instance for later use
+app.set('io', io);
+app.set('socketHandler', socketHandler); // ← ÚJ!
+
+// Start server
 const PORT = process.env.PORT || 3000;
-httpServer.listen(PORT, () => {
+server.listen(PORT, () => {
     console.log(`
-╔═══════════════════════════════════════════╗
-║     F1 Manager Game Server Started!       ║
-╠═══════════════════════════════════════════╣
-║  REST API: http://localhost:${PORT}/api     ║
-║  WebSocket: ws://localhost:${PORT}          ║
-╚═══════════════════════════════════════════╝
+    ╔═══════════════════════════════════════════╗
+    ║     🏎️  F1 Manager Backend Started  🏎️     ║
+    ╠═══════════════════════════════════════════╣
+    ║  Port: ${PORT}                               ║
+    ║  HTTP API: /api/*                         ║
+    ║  WebSocket: ws://localhost:${PORT}           ║
+    ║  Auth: /api/auth/*                        ║
+    ║  Game: /api/game/*                        ║
+    ║  Matchmaking: /api/matchmaking/*          ║
+    ║  Health: /health                          ║
+    ╚═══════════════════════════════════════════╝
     `);
 });
+
+module.exports = { app, server, io, socketHandler };

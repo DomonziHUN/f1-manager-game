@@ -1,0 +1,216 @@
+[gd_scene load_steps=2 format=3 uid="uid://garage123"]
+
+[ext_resource type="Script" path="res://scripts/garage/GarageController.gd" id="1_garage"]
+
+[node name="GarageScene" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1_garage")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.05, 0.05, 0.1, 1)
+
+[node name="VBoxContainer" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="Header" type="Panel" parent="VBoxContainer"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 80)
+
+[node name="HeaderContent" type="HBoxContainer" parent="VBoxContainer/Header"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = 20.0
+offset_right = -20.0
+offset_bottom = -20.0
+
+[node name="Title" type="Label" parent="VBoxContainer/Header/HeaderContent"]
+layout_mode = 2
+text = "🔧 Garage"
+size_flags_horizontal = 3
+
+[node name="BackButton" type="Button" parent="VBoxContainer/Header/HeaderContent"]
+layout_mode = 2
+text = "← Back to Dashboard"
+
+[node name="TabContainer" type="TabContainer" parent="VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="Pilots" type="Control" parent="VBoxContainer/TabContainer"]
+layout_mode = 2
+
+[node name="PilotsContent" type="HBoxContainer" parent="VBoxContainer/TabContainer/Pilots"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="ActivePilots" type="VBoxContainer" parent="VBoxContainer/TabContainer/Pilots/PilotsContent"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ActiveTitle" type="Label" parent="VBoxContainer/TabContainer/Pilots/PilotsContent/ActivePilots"]
+layout_mode = 2
+text = "👨‍✈️ Active Pilots"
+
+[node name="Slot1Panel" type="Panel" parent="VBoxContainer/TabContainer/Pilots/PilotsContent/ActivePilots"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 120)
+
+[node name="Slot1Content" type="VBoxContainer" parent="VBoxContainer/TabContainer/Pilots/PilotsContent/ActivePilots/Slot1Panel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = 10.0
+offset_right = -10.0
+offset_bottom = -10.0
+
+[node name="Slot1Title" type="Label" parent="VBoxContainer/TabContainer/Pilots/PilotsContent/ActivePilots/Slot1Panel/Slot1Content"]
+layout_mode = 2
+text = "Slot 1"
+
+[node name="Slot1Info" type="Label" parent="VBoxContainer/TabContainer/Pilots/PilotsContent/ActivePilots/Slot1Panel/Slot1Content"]
+layout_mode = 2
+text = "Empty"
+
+[node name="Slot1Button" type="Button" parent="VBoxContainer/TabContainer/Pilots/PilotsContent/ActivePilots/Slot1Panel/Slot1Content"]
+layout_mode = 2
+text = "Change Pilot"
+
+[node name="Slot2Panel" type="Panel" parent="VBoxContainer/TabContainer/Pilots/PilotsContent/ActivePilots"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 120)
+
+[node name="Slot2Content" type="VBoxContainer" parent="VBoxContainer/TabContainer/Pilots/PilotsContent/ActivePilots/Slot2Panel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = 10.0
+offset_right = -10.0
+offset_bottom = -10.0
+
+[node name="Slot2Title" type="Label" parent="VBoxContainer/TabContainer/Pilots/PilotsContent/ActivePilots/Slot2Panel/Slot2Content"]
+layout_mode = 2
+text = "Slot 2"
+
+[node name="Slot2Info" type="Label" parent="VBoxContainer/TabContainer/Pilots/PilotsContent/ActivePilots/Slot2Panel/Slot2Content"]
+layout_mode = 2
+text = "Empty"
+
+[node name="Slot2Button" type="Button" parent="VBoxContainer/TabContainer/Pilots/PilotsContent/ActivePilots/Slot2Panel/Slot2Content"]
+layout_mode = 2
+text = "Change Pilot"
+
+[node name="VSeparator" type="VSeparator" parent="VBoxContainer/TabContainer/Pilots/PilotsContent"]
+layout_mode = 2
+
+[node name="AllPilots" type="VBoxContainer" parent="VBoxContainer/TabContainer/Pilots/PilotsContent"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="AllPilotsTitle" type="Label" parent="VBoxContainer/TabContainer/Pilots/PilotsContent/AllPilots"]
+layout_mode = 2
+text = "📋 All Pilots"
+
+[node name="PilotsScrollContainer" type="ScrollContainer" parent="VBoxContainer/TabContainer/Pilots/PilotsContent/AllPilots"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="PilotsList" type="VBoxContainer" parent="VBoxContainer/TabContainer/Pilots/PilotsContent/AllPilots/PilotsScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Car Parts" type="Control" parent="VBoxContainer/TabContainer"]
+layout_mode = 2
+
+[node name="CarContent" type="HBoxContainer" parent="VBoxContainer/TabContainer/Car Parts"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="CarStats" type="VBoxContainer" parent="VBoxContainer/TabContainer/Car Parts/CarContent"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="StatsTitle" type="Label" parent="VBoxContainer/TabContainer/Car Parts/CarContent/CarStats"]
+layout_mode = 2
+text = "🏎️ Current Car Stats"
+
+[node name="StatsPanel" type="Panel" parent="VBoxContainer/TabContainer/Car Parts/CarContent/CarStats"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 200)
+
+[node name="StatsContent" type="VBoxContainer" parent="VBoxContainer/TabContainer/Car Parts/CarContent/CarStats/StatsPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = 10.0
+offset_right = -10.0
+offset_bottom = -10.0
+
+[node name="StatsLabel" type="Label" parent="VBoxContainer/TabContainer/Car Parts/CarContent/CarStats/StatsPanel/StatsContent"]
+layout_mode = 2
+text = "Loading..."
+
+[node name="VSeparator2" type="VSeparator" parent="VBoxContainer/TabContainer/Car Parts/CarContent"]
+layout_mode = 2
+
+[node name="CarParts" type="VBoxContainer" parent="VBoxContainer/TabContainer/Car Parts/CarContent"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="PartsTitle" type="Label" parent="VBoxContainer/TabContainer/Car Parts/CarContent/CarParts"]
+layout_mode = 2
+text = "⚙️ Car Parts"
+
+[node name="PartsScrollContainer" type="ScrollContainer" parent="VBoxContainer/TabContainer/Car Parts/CarContent/CarParts"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="PartsList" type="VBoxContainer" parent="VBoxContainer/TabContainer/Car Parts/CarContent/CarParts/PartsScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="StatusPanel" type="Panel" parent="VBoxContainer"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 60)
+
+[node name="StatusContent" type="HBoxContainer" parent="VBoxContainer/StatusPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = 20.0
+offset_right = -20.0
+offset_bottom = -20.0
+
+[node name="StatusLabel" type="Label" parent="VBoxContainer/StatusPanel/StatusContent"]
+layout_mode = 2
+text = "Loading garage..."
+size_flags_horizontal = 3
+
+[node name="SaveButton" type="Button" parent="VBoxContainer/StatusPanel/StatusContent"]
+layout_mode = 2
+text = "💾 Save Changes"
+disabled = true 

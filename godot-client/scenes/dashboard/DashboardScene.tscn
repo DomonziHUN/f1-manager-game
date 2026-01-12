@@ -1,0 +1,176 @@
+[gd_scene load_steps=2 format=3 uid="uid://dashboard123"]
+
+[ext_resource type="Script" path="res://scripts/dashboard/DashboardController.gd" id="1_dashboard"]
+
+[node name="DashboardScene" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1_dashboard")
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.05, 0.05, 0.1, 1)
+
+[node name="ScrollContainer" type="ScrollContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="VBoxContainer" type="VBoxContainer" parent="ScrollContainer"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="Header" type="Panel" parent="ScrollContainer/VBoxContainer"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 100)
+
+[node name="HeaderContent" type="HBoxContainer" parent="ScrollContainer/VBoxContainer/Header"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = 20.0
+offset_right = -20.0
+offset_bottom = -20.0
+
+[node name="UserInfo" type="VBoxContainer" parent="ScrollContainer/VBoxContainer/Header/HeaderContent"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="WelcomeLabel" type="Label" parent="ScrollContainer/VBoxContainer/Header/HeaderContent/UserInfo"]
+layout_mode = 2
+text = "Welcome back, Player!"
+
+[node name="LeagueLabel" type="Label" parent="ScrollContainer/VBoxContainer/Header/HeaderContent/UserInfo"]
+layout_mode = 2
+text = "Bronze League - 0 points"
+
+[node name="Currency" type="HBoxContainer" parent="ScrollContainer/VBoxContainer/Header/HeaderContent"]
+layout_mode = 2
+
+[node name="CoinsLabel" type="Label" parent="ScrollContainer/VBoxContainer/Header/HeaderContent/Currency"]
+layout_mode = 2
+text = "💰 5000"
+
+[node name="GemsLabel" type="Label" parent="ScrollContainer/VBoxContainer/Header/HeaderContent/Currency"]
+layout_mode = 2
+text = "💎 100"
+
+[node name="LogoutButton" type="Button" parent="ScrollContainer/VBoxContainer/Header/HeaderContent"]
+layout_mode = 2
+text = "Logout"
+
+[node name="HSeparator" type="HSeparator" parent="ScrollContainer/VBoxContainer"]
+layout_mode = 2
+
+[node name="MainContent" type="HBoxContainer" parent="ScrollContainer/VBoxContainer"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="LeftPanel" type="VBoxContainer" parent="ScrollContainer/VBoxContainer/MainContent"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="PilotsPanel" type="Panel" parent="ScrollContainer/VBoxContainer/MainContent/LeftPanel"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 200)
+
+[node name="PilotsContent" type="VBoxContainer" parent="ScrollContainer/VBoxContainer/MainContent/LeftPanel/PilotsPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = 10.0
+offset_right = -10.0
+offset_bottom = -10.0
+
+[node name="PilotsTitle" type="Label" parent="ScrollContainer/VBoxContainer/MainContent/LeftPanel/PilotsPanel/PilotsContent"]
+layout_mode = 2
+text = "👨‍✈️ Active Pilots"
+
+[node name="Pilot1" type="Label" parent="ScrollContainer/VBoxContainer/MainContent/LeftPanel/PilotsPanel/PilotsContent"]
+layout_mode = 2
+text = "Slot 1: Loading..."
+
+[node name="Pilot2" type="Label" parent="ScrollContainer/VBoxContainer/MainContent/LeftPanel/PilotsPanel/PilotsContent"]
+layout_mode = 2
+text = "Slot 2: Loading..."
+
+[node name="HSeparator2" type="HSeparator" parent="ScrollContainer/VBoxContainer/MainContent/LeftPanel"]
+layout_mode = 2
+
+[node name="CarPanel" type="Panel" parent="ScrollContainer/VBoxContainer/MainContent/LeftPanel"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 200)
+
+[node name="CarContent" type="VBoxContainer" parent="ScrollContainer/VBoxContainer/MainContent/LeftPanel/CarPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 10.0
+offset_top = 10.0
+offset_right = -10.0
+offset_bottom = -10.0
+
+[node name="CarTitle" type="Label" parent="ScrollContainer/VBoxContainer/MainContent/LeftPanel/CarPanel/CarContent"]
+layout_mode = 2
+text = "🏎️ Car Stats"
+
+[node name="CarStats" type="Label" parent="ScrollContainer/VBoxContainer/MainContent/LeftPanel/CarPanel/CarContent"]
+layout_mode = 2
+text = "Loading car stats..."
+
+[node name="RightPanel" type="VBoxContainer" parent="ScrollContainer/VBoxContainer/MainContent"]
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ActionsPanel" type="Panel" parent="ScrollContainer/VBoxContainer/MainContent/RightPanel"]
+layout_mode = 2
+custom_minimum_size = Vector2(0, 300)
+
+[node name="ActionsContent" type="VBoxContainer" parent="ScrollContainer/VBoxContainer/MainContent/RightPanel/ActionsPanel"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_top = 20.0
+offset_right = -20.0
+offset_bottom = -20.0
+
+[node name="ActionsTitle" type="Label" parent="ScrollContainer/VBoxContainer/MainContent/RightPanel/ActionsPanel/ActionsContent"]
+layout_mode = 2
+text = "🎮 Actions"
+horizontal_alignment = 1
+
+[node name="HSeparator3" type="HSeparator" parent="ScrollContainer/VBoxContainer/MainContent/RightPanel/ActionsPanel/ActionsContent"]
+layout_mode = 2
+
+[node name="FindMatchButton" type="Button" parent="ScrollContainer/VBoxContainer/MainContent/RightPanel/ActionsPanel/ActionsContent"]
+layout_mode = 2
+text = "🏁 Find Match"
+
+[node name="GarageButton" type="Button" parent="ScrollContainer/VBoxContainer/MainContent/RightPanel/ActionsPanel/ActionsContent"]
+layout_mode = 2
+text = "🔧 Garage"
+
+[node name="ShopButton" type="Button" parent="ScrollContainer/VBoxContainer/MainContent/RightPanel/ActionsPanel/ActionsContent"]
+layout_mode = 2
+text = "🛒 Shop"
+
+[node name="HSeparator4" type="HSeparator" parent="ScrollContainer/VBoxContainer/MainContent/RightPanel/ActionsPanel/ActionsContent"]
+layout_mode = 2
+
+[node name="StatusLabel" type="Label" parent="ScrollContainer/VBoxContainer/MainContent/RightPanel/ActionsPanel/ActionsContent"]
+layout_mode = 2
+text = "Ready to race!"
+horizontal_alignment = 1 
