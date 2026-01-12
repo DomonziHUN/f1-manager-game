@@ -1,4 +1,4 @@
- [gd_scene load_steps=2 format=3 uid="uid://matchmaking123"]
+[gd_scene load_steps=2 format=3 uid="uid://matchmaking123"]
 
 [ext_resource type="Script" path="res://scripts/matchmaking/MatchmakingController.gd" id="1_matchmaking"]
 
@@ -134,6 +134,12 @@ layout_mode = 2
 text = "Track: Spa-Francorchamps"
 horizontal_alignment = 1
 
-[node name="StartRaceButton" type="Button" parent="CenterContainer/MainPanel/VBoxContainer/MatchFoundPanel/MatchFoundContent"]
+[node name="CountdownLabel" type="Label" parent="CenterContainer/MainPanel/VBoxContainer/MatchFoundPanel/MatchFoundContent"]
 layout_mode = 2
-text = "🏎️ Start Race!"
+text = "Starting race preparation in 3..."
+horizontal_alignment = 1
+
+[node name="AutoStartInfo" type="Label" parent="CenterContainer/MainPanel/VBoxContainer/MatchFoundPanel/MatchFoundContent"]
+layout_mode = 2
+text = "Race will start automatically"
+horizontal_alignment = 1

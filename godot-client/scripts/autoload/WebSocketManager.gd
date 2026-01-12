@@ -25,6 +25,12 @@ signal queue_left()
 signal queue_error(error: String)
 signal queue_update(data: Dictionary)
 signal match_found(data: Dictionary)
+signal race_preparation_update(data: Dictionary)
+signal qualifying_start(data: Dictionary)
+signal weather_update(data: Dictionary)
+signal race_start(data: Dictionary)
+signal race_update(data: Dictionary)
+signal race_finished(data: Dictionary)
 
 func _ready():
 	print("🔌 WebSocketManager initialized")
@@ -241,7 +247,22 @@ func _handle_message(message_text: String):
 			queue_error.emit(error)
 		else:
 			print("⚠️ Unknown message format: " + str(data))
+# Add these helper functions:
+func send_race_preparation(data: Dictionary):
+	if not is_authenticated:
+		print("❌ Cannot send race preparation: not authenticated")
+		return
+	
+	print("🏁 Sending race preparation...")
+	_send_message("race_preparation", data)
 
+func send_qualifying_ready():
+	if not is_authenticated:
+		print("❌ Cannot send qualifying ready: not authenticated")
+		return
+	
+	print("🏁 Sending qualifying ready...")
+	_send_message("qualifying_ready", {})
 func _handle_event(event: String, payload: Dictionary):
 	match event:
 		"welcome":
@@ -285,6 +306,31 @@ func _handle_event(event: String, payload: Dictionary):
 		"match_found":
 			print("🎉 Match found!")
 			match_found.emit(payload)
+		
+		# NEW RACE EVENTS:
+		"race_preparation_update":
+			print("🏁 Race preparation update: " + str(payload))
+			race_preparation_update.emit(payload)
+		
+		"qualifying_start":
+			print("🏁 Qualifying starting: " + str(payload))
+			qualifying_start.emit(payload)
+		
+		"weather_update":
+			print("🌤️ Weather update: " + str(payload))
+			weather_update.emit(payload)
+		
+		"race_start":
+			print("🏁 Race starting: " + str(payload))
+			race_start.emit(payload)
+		
+		"race_update":
+			print("🏎️ Race update: " + str(payload))
+			race_update.emit(payload)
+		
+		"race_finished":
+			print("🏆 Race finished: " + str(payload))
+			race_finished.emit(payload)
 		
 		_:
 			print("⚠️ Unknown WebSocket event: " + event)

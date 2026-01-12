@@ -27,10 +27,13 @@ extends Control
 
 # Race data
 var match_data: Dictionary = {}
-var selected_tire: String = ""
+var pilot1_tire: String = ""
+var pilot2_tire: String = ""
+var current_pilot_selection: int = 1  # 1 or 2
 var preparation_time: float = 30.0
 var is_ready: bool = false
 var current_weather: String = "dry"
+var user_pilots: Array = []
 
 # All tire buttons for easy management
 var tire_buttons: Array = []
@@ -112,16 +115,32 @@ func _ready():
 	# Generate random weather for this race
 	_generate_race_weather()
 	
-	# Default tire selection based on weather
-	_auto_select_recommended_tire()
+	# Load pilot info first, then auto-select tires
+	_load_pilot_info()
 
 func _load_match_data():
-	# This should be passed from matchmaking scene
-	# For now, we'll get it from a global or load from WebSocket
-	if GameManager.has_method("get_current_match"):
-		match_data = GameManager.get_current_match()
-	
+	match_data = GameManager.get_current_match()
 	_update_ui()
+
+func _load_pilot_info():
+	# Get pilot info from GameManager
+	user_pilots = GameManager.get_active_pilots()
+	
+	if user_pilots.size() >= 2:
+		var pilot1 = user_pilots[0]
+		var pilot2 = user_pilots[1]
+		
+		pilot1_info.text = "Pilot 1: " + str(pilot1.get("name", "Unknown")) + "\n" + str(pilot1.get("team", "")) + "\nSpeed: " + str(pilot1.get("total_speed", 0))
+		pilot2_info.text = "Pilot 2: " + str(pilot2.get("name", "Unknown")) + "\n" + str(pilot2.get("team", "")) + "\nSpeed: " + str(pilot2.get("total_speed", 0))
+		
+		print("👨‍✈️ Loaded pilots: " + pilot1.get("name", "") + " & " + pilot2.get("name", ""))
+	else:
+		pilot1_info.text = "Pilot 1: Not found"
+		pilot2_info.text = "Pilot 2: Not found"
+		print("❌ Not enough active pilots found")
+	
+	# Auto-select recommended tires for both pilots
+	_auto_select_recommended_tires()
 
 func _generate_race_weather():
 	# Random weather generation (later this will come from server)
@@ -134,7 +153,7 @@ func _generate_race_weather():
 	
 	print("🌤️ Race weather: " + current_weather)
 
-func _auto_select_recommended_tire():
+func _auto_select_recommended_tires():
 	var recommended_tire = ""
 	
 	match current_weather:
@@ -145,7 +164,13 @@ func _auto_select_recommended_tire():
 		"heavy_rain", "storm":
 			recommended_tire = "wet"
 	
-	_select_tire(recommended_tire)
+	# Set same tire for both pilots initially
+	pilot1_tire = recommended_tire
+	pilot2_tire = recommended_tire
+	
+	# Start with pilot 1 selection
+	current_pilot_selection = 1
+	_update_tire_selection_ui()
 
 func _update_ui():
 	if match_data.is_empty():
@@ -159,22 +184,17 @@ func _update_ui():
 	var opponent = match_data.get("opponent", {})
 	opponent_name.text = str(opponent.get("username", "Unknown Player"))
 	opponent_league.text = "League " + str(opponent.get("league", 1))
-	
-	# Load pilot info from garage
-	_load_pilot_info()
 
-func _load_pilot_info():
-	# Get pilot info from NetworkManager or local storage
-	NetworkManager.get_garage()
-
-func _select_tire(tire_type: String):
-	selected_tire = tire_type
+func _update_tire_selection_ui():
+	# Update button states based on current pilot selection
+	var current_tire = pilot1_tire if current_pilot_selection == 1 else pilot2_tire
 	
-	# Update button states
+	# Clear all buttons
 	for button in tire_buttons:
 		button.button_pressed = false
 	
-	match tire_type:
+	# Set current tire button
+	match current_tire:
 		"soft":
 			soft_tire.button_pressed = true
 		"medium":
@@ -186,46 +206,77 @@ func _select_tire(tire_type: String):
 		"wet":
 			wet_tire.button_pressed = true
 	
-	# Update tire info with weather-specific performance
-	_update_tire_info(tire_type)
+	# Update tire info
+	_update_tire_info(current_tire)
 	
-	# Enable ready button
-	ready_button.disabled = false
+	# Update status
+	var pilot_name = ""
+	if user_pilots.size() >= current_pilot_selection:
+		pilot_name = user_pilots[current_pilot_selection - 1].get("name", "Pilot " + str(current_pilot_selection))
+	else:
+		pilot_name = "Pilot " + str(current_pilot_selection)
 	
-	var tire_data = tire_compounds[tire_type]
-	status_label.text = "Tire selected: " + tire_data.color + " " + tire_data.name
+	status_label.text = "Selecting tire for " + pilot_name + " (Click tire then switch pilot)"
+	
+	# Update ready button
+	_check_ready_status()
+
+func _select_tire(tire_type: String):
+	# Set tire for current pilot
+	if current_pilot_selection == 1:
+		pilot1_tire = tire_type
+	else:
+		pilot2_tire = tire_type
+	
+	print("🛞 " + tire_type + " selected for pilot " + str(current_pilot_selection))
+	
+	# Update UI
+	_update_tire_selection_ui()
+	
+	# Auto-switch to next pilot if first pilot is done
+	if current_pilot_selection == 1 and not pilot1_tire.is_empty():
+		current_pilot_selection = 2
+		_update_tire_selection_ui()
 
 func _update_tire_info(tire_type: String):
+	if tire_type.is_empty():
+		tire_info.text = "Select tire compound for Pilot " + str(current_pilot_selection)
+		return
+	
 	var tire_data = tire_compounds[tire_type]
 	var weather_data = weather_conditions[current_weather]
 	
-	tire_info.text = tire_data.color + " " + tire_data.name + " selected\n\n"
+	tire_info.text = "Pilot " + str(current_pilot_selection) + ": " + tire_data.color + " " + tire_data.name + "\n\n"
 	
 	# Show performance based on current weather
 	if current_weather == "dry":
 		var speed_percent = int(tire_data.dry_speed * 100)
-		tire_info.text += "☀️ Dry Performance:\n"
-		tire_info.text += "Speed: " + str(speed_percent) + "%\n"
+		tire_info.text += "☀️ Dry Performance: " + str(speed_percent) + "%\n"
 	else:
 		var speed_percent = int(tire_data.wet_speed * 100)
-		tire_info.text += "🌧️ Wet Performance:\n"
-		tire_info.text += "Speed: " + str(speed_percent) + "%\n"
+		tire_info.text += "🌧️ Wet Performance: " + str(speed_percent) + "%\n"
 	
 	tire_info.text += "Wear rate: " + str(int(tire_data.wear_rate * 100)) + "%\n\n"
 	
-	# Show suitability warning
-	var is_suitable = current_weather in tire_data.weather_suitability
-	if not is_suitable:
-		if current_weather == "dry" and tire_type in ["intermediate", "wet"]:
-			tire_info.text += "⚠️ WARNING: Wet tires overheat in dry conditions!"
-		elif current_weather != "dry" and tire_type in ["soft", "medium", "hard"]:
-			tire_info.text += "⚠️ WARNING: Dry tires are dangerous in wet conditions!"
+	# Show both pilots' tire selection
+	if not pilot1_tire.is_empty():
+		tire_info.text += "Pilot 1: " + tire_compounds[pilot1_tire].color + " " + tire_compounds[pilot1_tire].name + "\n"
+	if not pilot2_tire.is_empty():
+		tire_info.text += "Pilot 2: " + tire_compounds[pilot2_tire].color + " " + tire_compounds[pilot2_tire].name + "\n"
+
+func _check_ready_status():
+	var both_tires_selected = not pilot1_tire.is_empty() and not pilot2_tire.is_empty()
+	ready_button.disabled = not both_tires_selected
+	
+	if both_tires_selected:
+		ready_button.text = "Ready!"
+		status_label.text = "✅ Both pilots have tires selected. Ready to start!"
 	else:
-		tire_info.text += "✅ Good choice for current weather"
+		ready_button.text = "Select Tires"
 
 func _on_ready_pressed():
-	if selected_tire.is_empty():
-		status_label.text = "❌ Please select a tire compound first"
+	if pilot1_tire.is_empty() or pilot2_tire.is_empty():
+		status_label.text = "❌ Please select tires for both pilots"
 		return
 	
 	is_ready = true
@@ -236,24 +287,25 @@ func _on_ready_pressed():
 	
 	# Send preparation data to server
 	var preparation_data = {
-		"tire_compound": selected_tire,
+		"pilot1_tire": pilot1_tire,
+		"pilot2_tire": pilot2_tire,
 		"weather": current_weather,
 		"ready": true
 	}
 	
-	# For now, we'll simulate this since WebSocket methods don't exist yet
 	print("📤 Sending race preparation: " + str(preparation_data))
 	
-	# Simulate opponent getting ready after 3-8 seconds
-	var wait_time = randf_range(3.0, 8.0)
+	# Simulate opponent getting ready after 2-5 seconds
+	var wait_time = randf_range(2.0, 5.0)
 	await get_tree().create_timer(wait_time).timeout
-	_simulate_opponent_ready()
+	_simulate_both_ready()
 
-func _simulate_opponent_ready():
+func _simulate_both_ready():
 	opponent_status.text = "✅ Ready!"
-	status_label.text = "✅ Both players ready! Starting qualifying in 3 seconds..."
+	status_label.text = "✅ Both players ready! Starting qualifying automatically..."
 	
-	await get_tree().create_timer(3.0).timeout
+	# Automatically start qualifying after 2 seconds
+	await get_tree().create_timer(2.0).timeout
 	_start_qualifying()
 
 func _start_qualifying():
@@ -263,12 +315,13 @@ func _start_qualifying():
 	var qualifying_data = {
 		"match_data": match_data,
 		"weather": current_weather,
-		"player_tire": selected_tire
+		"pilot1_tire": pilot1_tire,
+		"pilot2_tire": pilot2_tire,
+		"user_pilots": user_pilots
 	}
 	
 	# Store in GameManager for next scene
-	if GameManager.has_method("set_qualifying_data"):
-		GameManager.set_qualifying_data(qualifying_data)
+	GameManager.set_qualifying_data(qualifying_data)
 	
 	# Go to qualifying scene
 	var qualifying_scene = preload("res://scenes/race/QualifyingScene.tscn")
@@ -279,12 +332,17 @@ func _on_race_preparation_update(data: Dictionary):
 	
 	# Update opponent status
 	var opponent_ready = data.get("opponent_ready", false)
+	var opponent_tires = data.get("opponent_tires", {})
+	
 	if opponent_ready:
 		opponent_status.text = "✅ Ready!"
 		if is_ready:
-			status_label.text = "✅ Both players ready! Starting qualifying..."
+			status_label.text = "✅ Both players ready! Starting qualifying automatically..."
 			await get_tree().create_timer(2.0).timeout
 			_start_qualifying()
+	else:
+		var opponent_progress = data.get("opponent_progress", "Preparing...")
+		opponent_status.text = "⏳ " + str(opponent_progress)
 
 func _on_qualifying_start(data: Dictionary):
 	print("🏁 Qualifying starting: " + str(data))
@@ -297,7 +355,7 @@ func _on_weather_update(data: Dictionary):
 	if new_weather != current_weather:
 		current_weather = new_weather
 		_generate_race_weather()
-		_update_tire_info(selected_tire)
+		_update_tire_info(pilot1_tire if current_pilot_selection == 1 else pilot2_tire)
 
 func _process(delta):
 	if preparation_time > 0:
@@ -312,13 +370,22 @@ func _process(delta):
 
 func _auto_ready():
 	if not is_ready:
-		# Auto-select recommended tire if nothing selected
-		if selected_tire.is_empty():
-			_auto_select_recommended_tire()
+		# Auto-select recommended tires if not selected
+		if pilot1_tire.is_empty() or pilot2_tire.is_empty():
+			_auto_select_recommended_tires()
 		
 		# Auto-ready
 		_on_ready_pressed()
 		status_label.text = "⏰ Auto-ready! Time expired."
+
+func _input(event):
+	# Allow switching between pilots with Tab key
+	if event.is_action_pressed("ui_focus_next"):
+		if current_pilot_selection == 1:
+			current_pilot_selection = 2
+		else:
+			current_pilot_selection = 1
+		_update_tire_selection_ui()
 
 func _exit_tree():
 	# Clean up any timers or connections

@@ -31,7 +31,7 @@ func _ready():
 	# Connect buttons
 	cancel_button.pressed.connect(_on_cancel_pressed)
 	find_match_button.pressed.connect(_on_find_match_pressed)
-	start_race_button.pressed.connect(_on_start_race_pressed)
+	# start_race_button connection removed intentionally
 	
 	# Connect WebSocket signals
 	WebSocketManager.connected.connect(_on_websocket_connected)
@@ -178,18 +178,6 @@ func _on_cancel_pressed():
 			print("🚪 Leaving queue...")
 			WebSocketManager.leave_queue()
 
-func _on_start_race_pressed():
-	print("🏎️ Starting race preparation...")
-	
-	# Store match data in GameManager
-	if GameManager.has_method("set_current_match"):
-		GameManager.set_current_match(match_data)
-	
-	# Go to race preparation scene
-	var race_prep_scene = preload("res://scenes/race/RacePreparationScene.tscn")
-	get_tree().change_scene_to_packed(race_prep_scene)
-
-# UI Updates
 func _show_match_found(data: Dictionary):
 	var opponent = data.get("opponent", {})
 	var track = data.get("track", {})
@@ -198,6 +186,22 @@ func _show_match_found(data: Dictionary):
 	track_label.text = "Track: " + str(track.get("name", "Unknown")) + " (" + str(track.get("laps", 0)) + " laps)"
 	
 	_set_state(MatchmakingState.MATCH_FOUND)
+	
+	# Store match data immediately
+	GameManager.set_current_match(data)
+	
+	# Show match found for 3 seconds, then automatically go to race preparation
+	status_label.text = "🎉 Match found! Starting race preparation..."
+	
+	await get_tree().create_timer(3.0).timeout
+	_go_to_race_preparation()
+
+func _go_to_race_preparation():
+	print("🏁 Going to race preparation automatically...")
+	
+	# Go directly to race preparation
+	var race_prep_scene = preload("res://scenes/race/RacePreparationScene.tscn")
+	get_tree().change_scene_to_packed(race_prep_scene)
 
 func _go_back_to_dashboard():
 	print("🏠 Going back to dashboard...")
