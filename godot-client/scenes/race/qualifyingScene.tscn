@@ -10,166 +10,213 @@ script = ExtResource("1_qualifying")
 [node name="Background" type="ColorRect" parent="."]
 anchor_right = 1.0
 anchor_bottom = 1.0
-color = Color(0.07, 0.07, 0.11, 1)
+color = Color(0.06, 0.06, 0.1, 1)
 
 [node name="Header" type="HBoxContainer" parent="."]
 anchor_right = 1.0
-anchor_bottom = 0.12
-custom_minimum_size = Vector2(0, 80)
+offset_left = 20.0
+offset_top = 10.0
+offset_right = -20.0
+offset_bottom = 70.0
 theme_override_constants/separation = 40
 
 [node name="Left" type="VBoxContainer" parent="Header"]
 size_flags_horizontal = 3
-theme_override_constants/separation = 4
+theme_override_constants/separation = 2
 
 [node name="SessionLabel" type="Label" parent="Header/Left"]
 text = "ONE SHOT QUALIFYING"
 horizontal_alignment = 0
-theme_override_font_sizes/font_size = 18
+theme_override_font_sizes/font_size = 20
+theme_override_colors/font_color = Color(0.95, 0.95, 1, 1)
 
 [node name="TrackLabel" type="Label" parent="Header/Left"]
 text = "Track: N/A"
 horizontal_alignment = 0
-theme_override_font_sizes/font_size = 14
-modulate = Color(0.8, 0.8, 0.9, 1)
+theme_override_font_sizes/font_size = 13
+theme_override_colors/font_color = Color(0.6, 0.65, 0.75, 1)
 
 [node name="Center" type="VBoxContainer" parent="Header"]
 size_flags_horizontal = 3
-theme_override_constants/separation = 4
+theme_override_constants/separation = 6
 alignment = 1
 
 [node name="StatusLabel" type="Label" parent="Header/Center"]
 text = "Requesting qualifying results..."
 horizontal_alignment = 1
-theme_override_font_sizes/font_size = 16
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.85, 0.9, 1, 1)
 
 [node name="HeaderProgressBar" type="ProgressBar" parent="Header/Center"]
-custom_minimum_size = Vector2(400, 16)
+custom_minimum_size = Vector2(350, 8)
+size_flags_horizontal = 4
 value = 0.0
+show_percentage = false
 
 [node name="Right" type="VBoxContainer" parent="Header"]
 size_flags_horizontal = 3
 alignment = 2
-theme_override_constants/separation = 4
+theme_override_constants/separation = 2
 
 [node name="WeatherLabel" type="Label" parent="Header/Right"]
-text = "☀️ Dry"
+text = "DRY"
 horizontal_alignment = 2
 theme_override_font_sizes/font_size = 16
+theme_override_colors/font_color = Color(0.95, 0.95, 1, 1)
 
 [node name="WeatherDetailLabel" type="Label" parent="Header/Right"]
-text = "Air: 24°C  Track: 32°C"
+text = ""
 horizontal_alignment = 2
-theme_override_font_sizes/font_size = 12
-modulate = Color(0.8, 0.8, 0.9, 1)
+theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(0.6, 0.65, 0.75, 1)
 
 [node name="Main" type="HSplitContainer" parent="."]
-anchor_top = 0.12
+anchor_top = 0.1
 anchor_right = 1.0
-anchor_bottom = 0.82
-theme_override_constants/separation = 16
+anchor_bottom = 0.88
+offset_left = 10.0
+offset_right = -10.0
+theme_override_constants/separation = 20
 
 [node name="LeftPanel" type="PanelContainer" parent="Main"]
 size_flags_horizontal = 3
-theme_override_styles/panel = null
 
 [node name="TrackContainer" type="Node2D" parent="Main/LeftPanel"]
-position = Vector2(640, 270)
+position = Vector2(400, 320)
+scale = Vector2(1.5, 1.5)
 
 [node name="RightPanel" type="PanelContainer" parent="Main"]
 size_flags_horizontal = 4
-theme_override_styles/panel = null
+custom_minimum_size = Vector2(500, 0)
 
 [node name="ResultsVBox" type="VBoxContainer" parent="Main/RightPanel"]
 anchor_right = 1.0
 anchor_bottom = 1.0
-theme_override_constants/separation = 4
+offset_left = 12.0
+offset_top = 10.0
+offset_right = -12.0
+offset_bottom = -10.0
+theme_override_constants/separation = 2
 
 [node name="TableHeader" type="HBoxContainer" parent="Main/RightPanel/ResultsVBox"]
+custom_minimum_size = Vector2(0, 28)
 theme_override_constants/separation = 8
 
 [node name="PosHeader" type="Label" parent="Main/RightPanel/ResultsVBox/TableHeader"]
 text = "POS"
-custom_minimum_size = Vector2(40, 0)
+custom_minimum_size = Vector2(45, 0)
 horizontal_alignment = 2
-theme_override_font_sizes/font_size = 12
-modulate = Color(0.7, 0.8, 1, 1)
+theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(0.5, 0.55, 0.65, 1)
 
 [node name="DriverHeader" type="Label" parent="Main/RightPanel/ResultsVBox/TableHeader"]
 text = "DRIVER"
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 12
-modulate = Color(0.7, 0.8, 1, 1)
+theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(0.5, 0.55, 0.65, 1)
 
 [node name="TeamHeader" type="Label" parent="Main/RightPanel/ResultsVBox/TableHeader"]
 text = "TEAM"
 size_flags_horizontal = 3
-theme_override_font_sizes/font_size = 12
-modulate = Color(0.7, 0.8, 1, 1)
+theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(0.5, 0.55, 0.65, 1)
 
 [node name="TyreHeader" type="Label" parent="Main/RightPanel/ResultsVBox/TableHeader"]
 text = "TYRE"
-custom_minimum_size = Vector2(70, 0)
+custom_minimum_size = Vector2(60, 0)
 horizontal_alignment = 1
-theme_override_font_sizes/font_size = 12
-modulate = Color(0.7, 0.8, 1, 1)
+theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(0.5, 0.55, 0.65, 1)
 
 [node name="TimeHeader" type="Label" parent="Main/RightPanel/ResultsVBox/TableHeader"]
 text = "TIME"
-custom_minimum_size = Vector2(110, 0)
+custom_minimum_size = Vector2(100, 0)
 horizontal_alignment = 2
-theme_override_font_sizes/font_size = 12
-modulate = Color(0.7, 0.8, 1, 1)
+theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(0.5, 0.55, 0.65, 1)
 
 [node name="GapHeader" type="Label" parent="Main/RightPanel/ResultsVBox/TableHeader"]
 text = "GAP"
 custom_minimum_size = Vector2(80, 0)
 horizontal_alignment = 2
-theme_override_font_sizes/font_size = 12
-modulate = Color(0.7, 0.8, 1, 1)
+theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(0.5, 0.55, 0.65, 1)
+
+[node name="Separator" type="HSeparator" parent="Main/RightPanel/ResultsVBox"]
+modulate = Color(0.3, 0.35, 0.45, 1)
 
 [node name="RowsContainer" type="VBoxContainer" parent="Main/RightPanel/ResultsVBox"]
-theme_override_constants/separation = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 1
 
 [node name="Footer" type="HBoxContainer" parent="."]
-anchor_top = 0.82
+anchor_top = 0.9
 anchor_right = 1.0
 anchor_bottom = 1.0
-theme_override_constants/separation = 40
+offset_left = 20.0
+offset_right = -20.0
+offset_bottom = -10.0
+theme_override_constants/separation = 30
 
-[node name="YourPanel" type="VBoxContainer" parent="Footer"]
+[node name="YourPanel" type="PanelContainer" parent="Footer"]
 size_flags_horizontal = 3
+custom_minimum_size = Vector2(200, 0)
+
+[node name="YourContent" type="VBoxContainer" parent="Footer/YourPanel"]
+offset_left = 12.0
+offset_top = 8.0
+offset_right = -12.0
+offset_bottom = -8.0
 theme_override_constants/separation = 4
 
-[node name="YourTitle" type="Label" parent="Footer/YourPanel"]
-text = "YOUR QUALIFYING"
-theme_override_font_sizes/font_size = 14
+[node name="YourTitle" type="Label" parent="Footer/YourPanel/YourContent"]
+text = "YOUR RESULTS"
+theme_override_font_sizes/font_size = 13
+theme_override_colors/font_color = Color(0.4, 0.8, 1, 1)
 
-[node name="YourSummary" type="Label" parent="Footer/YourPanel"]
-text = "Pilot 1: -\nPilot 2: -"
+[node name="YourSummary" type="Label" parent="Footer/YourPanel/YourContent"]
+text = "Driver 1: ---\nDriver 2: ---"
 autowrap_mode = 2
 theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.85, 0.9, 0.95, 1)
 
 [node name="VsLabel" type="Label" parent="Footer"]
 text = "VS"
-size_flags_horizontal = 1
+size_flags_horizontal = 4
 horizontal_alignment = 1
-theme_override_font_sizes/font_size = 24
+vertical_alignment = 1
+theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.5, 0.55, 0.65, 1)
 
-[node name="OpponentPanel" type="VBoxContainer" parent="Footer"]
+[node name="OpponentPanel" type="PanelContainer" parent="Footer"]
 size_flags_horizontal = 3
-alignment = 0
+custom_minimum_size = Vector2(200, 0)
+
+[node name="OppContent" type="VBoxContainer" parent="Footer/OpponentPanel"]
+offset_left = 12.0
+offset_top = 8.0
+offset_right = -12.0
+offset_bottom = -8.0
 theme_override_constants/separation = 4
 
-[node name="OppTitle" type="Label" parent="Footer/OpponentPanel"]
-text = "OPPONENT QUALIFYING"
-theme_override_font_sizes/font_size = 14
+[node name="OppTitle" type="Label" parent="Footer/OpponentPanel/OppContent"]
+text = "OPPONENT"
+theme_override_font_sizes/font_size = 13
+theme_override_colors/font_color = Color(1, 0.4, 0.4, 1)
 
-[node name="OppSummary" type="Label" parent="Footer/OpponentPanel"]
-text = "Pilot 1: -\nPilot 2: -"
+[node name="OppSummary" type="Label" parent="Footer/OpponentPanel/OppContent"]
+text = "Driver 1: ---\nDriver 2: ---"
 autowrap_mode = 2
 theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.85, 0.9, 0.95, 1)
+
+[node name="Spacer" type="Control" parent="Footer"]
+size_flags_horizontal = 3
 
 [node name="ContinueButton" type="Button" parent="Footer"]
-text = "Continue"
-size_flags_horizontal = 1
+custom_minimum_size = Vector2(140, 45)
+size_flags_horizontal = 8
+size_flags_vertical = 4
+disabled = true
+text = "Waiting..."
+theme_override_font_sizes/font_size = 14

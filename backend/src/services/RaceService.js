@@ -1,4 +1,4 @@
-// backend/services/RaceService.js
+// backend/src/services/RaceService.js
 const { db } = require('../config/database');
 const RaceEngine = require('../race-engine/RaceEngine');
 const { v4: uuidv4 } = require('uuid');
@@ -30,7 +30,7 @@ class RaceService {
             this.activeRaces.set(raceId, race);
         }
 
-        socket.join && socket.join(raceId); // csak Socket.IO esetén van értelme
+        socket.join && socket.join(raceId);
         race.players.set(userId, {
             socketId: socket.id,
             userId,
@@ -70,9 +70,18 @@ class RaceService {
         }
 
         const playerIds = [match.player1_id, match.player2_id];
-
         const playersData = playerIds.map(userId => this.loadPlayerRaceData(userId));
 
+        // Qualifying grid betöltése
+        let qualifyingGrid = [];
+        try {
+            const raceState = JSON.parse(match.race_state || '{}');
+            qualifyingGrid = raceState.qualifying || [];
+        } catch (e) {
+            console.warn('Failed to parse qualifying grid', e);
+        }
+
+        // RaceEngine létrehozása
         race.engine = new RaceEngine({
             raceId,
             track: {
@@ -82,11 +91,13 @@ class RaceService {
                 tire_wear_factor: match.tire_wear_factor
             },
             weather: match.weather || 'dry',
-            players: playersData
+            players: playersData,
+            qualifyingGrid: qualifyingGrid
         });
 
         race.state = 'countdown';
 
+        // Értesítés mindenkinek
         this.io.to && this.io.to(raceId).emit('race:prepare', {
             raceId,
             players: playersData.map(p => ({
@@ -99,9 +110,12 @@ class RaceService {
                 }))
             })),
             track: race.engine.track,
-            totalCars: race.engine.cars?.size || 20
+            weather: race.engine.weather,
+            totalCars: race.engine.cars?.size || 20,
+            totalLaps: race.engine.totalLaps
         });
 
+        // Countdown
         for (let i = 3; i > 0; i--) {
             this.io.to && this.io.to(raceId).emit('race:countdown', { seconds: i });
             await this.sleep(1000);
@@ -184,19 +198,34 @@ class RaceService {
 
         race.state = 'racing';
 
-        this.io.to && this.io.to(raceId).emit('race:start');
+        this.io.to && this.io.to(raceId).emit('race:start', {
+            raceId,
+            totalLaps: race.engine.totalLaps,
+            weather: race.engine.weather
+        });
+
+        // ÚJ: 50 tick/sec = 20ms interval
+        const TICK_INTERVAL = 1000 / 50; // 20ms
 
         race.interval = setInterval(() => {
             const snapshot = race.engine.tick();
 
+            // Broadcast minden tick után
             this.io.to && this.io.to(raceId).emit('race:state', snapshot);
+
+            // Events külön broadcast (overtake, pit, weather change stb)
+            if (snapshot.events && snapshot.events.length > 0) {
+                for (const event of snapshot.events) {
+                    this.io.to && this.io.to(raceId).emit('race:event', event);
+                }
+            }
 
             if (race.engine.isFinished()) {
                 this.endRace(raceId).catch(err => {
                     console.error('endRace error:', err);
                 });
             }
-        }, 50);
+        }, TICK_INTERVAL);
     }
 
     handleCommand(socket, data) {
@@ -204,7 +233,10 @@ class RaceService {
         const race = this.activeRaces.get(raceId);
         if (!race || !race.engine) return;
 
+        // Parancs végrehajtása
         race.engine.handleCommand(carId, command);
+
+        console.log(`Command received: ${carId} - ${command.type}`, command);
     }
 
     handleDisconnect(socket) {
@@ -217,11 +249,8 @@ class RaceService {
             userId: socket.userId
         });
 
-        if (race.state === 'racing') {
-            this.endRace(socket.raceId, socket.userId).catch(err => {
-                console.error('endRace on disconnect error:', err);
-            });
-        }
+        // Ha verseny közben van, ne állítsuk le (AI veszi át)
+        console.log(`Player ${socket.userId} disconnected from race ${socket.raceId}`);
     }
 
     async endRace(raceId, disconnectedPlayerId = null) {

@@ -1,1 +1,149 @@
- 
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/race/MainRaceController.gd" id="1"]
+[ext_resource type="PackedScene" path="res://scenes/race/components/CarControlPanel.tscn" id="2"]
+
+[node name="RaceScene" type="Control"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+script = ExtResource("1")
+
+[node name="Background" type="ColorRect" parent="."]
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0.06, 0.06, 0.1, 1)
+
+[node name="Header" type="HBoxContainer" parent="."]
+anchor_right = 1.0
+offset_left = 20.0
+offset_top = 10.0
+offset_right = -20.0
+offset_bottom = 60.0
+theme_override_constants/separation = 40
+
+[node name="Left" type="VBoxContainer" parent="Header"]
+size_flags_horizontal = 3
+theme_override_constants/separation = 2
+
+[node name="LapLabel" type="Label" parent="Header/Left"]
+text = "LAP 0/15"
+theme_override_font_sizes/font_size = 18
+theme_override_colors/font_color = Color(0.95, 0.95, 1, 1)
+
+[node name="TimeLabel" type="Label" parent="Header/Left"]
+text = "00:00"
+theme_override_font_sizes/font_size = 14
+theme_override_colors/font_color = Color(0.6, 0.65, 0.75, 1)
+
+[node name="Center" type="VBoxContainer" parent="Header"]
+size_flags_horizontal = 3
+alignment = 1
+
+[node name="Spacer" type="Control" parent="Header/Center"]
+size_flags_vertical = 3
+
+[node name="Right" type="VBoxContainer" parent="Header"]
+size_flags_horizontal = 3
+alignment = 2
+theme_override_constants/separation = 2
+
+[node name="WeatherLabel" type="Label" parent="Header/Right"]
+text = "DRY"
+horizontal_alignment = 2
+theme_override_font_sizes/font_size = 16
+theme_override_colors/font_color = Color(0.95, 0.95, 1, 1)
+
+[node name="WeatherForecast" type="Label" parent="Header/Right"]
+text = ""
+horizontal_alignment = 2
+theme_override_font_sizes/font_size = 11
+theme_override_colors/font_color = Color(0.6, 0.65, 0.75, 1)
+
+[node name="Main" type="HSplitContainer" parent="."]
+anchor_top = 0.08
+anchor_right = 1.0
+anchor_bottom = 0.92
+offset_left = 10.0
+offset_right = -10.0
+theme_override_constants/separation = 20
+
+[node name="LeftPanel" type="PanelContainer" parent="Main"]
+size_flags_horizontal = 3
+
+[node name="LeftVBox" type="VBoxContainer" parent="Main/LeftPanel"]
+offset_left = 8.0
+offset_top = 8.0
+offset_right = -8.0
+offset_bottom = -8.0
+theme_override_constants/separation = 8
+
+[node name="TrackTitle" type="Label" parent="Main/LeftPanel/LeftVBox"]
+text = "TRACK VIEW"
+theme_override_font_sizes/font_size = 12
+theme_override_colors/font_color = Color(0.6, 0.65, 0.75, 1)
+
+[node name="TrackContainer" type="Node2D" parent="Main/LeftPanel"]
+position = Vector2(400, 300)
+scale = Vector2(1.5, 1.5)
+
+[node name="RightPanel" type="VBoxContainer" parent="Main"]
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(600, 0)
+theme_override_constants/separation = 12
+
+[node name="StandingsPanel" type="PanelContainer" parent="Main/RightPanel"]
+size_flags_vertical = 3
+
+[node name="StandingsVBox" type="VBoxContainer" parent="Main/RightPanel/StandingsPanel"]
+offset_left = 8.0
+offset_top = 8.0
+offset_right = -8.0
+offset_bottom = -8.0
+theme_override_constants/separation = 4
+
+[node name="StandingsTitle" type="Label" parent="Main/RightPanel/StandingsPanel/StandingsVBox"]
+text = "LIVE STANDINGS"
+theme_override_font_sizes/font_size = 13
+theme_override_colors/font_color = Color(0.6, 0.65, 0.75, 1)
+
+[node name="StandingsSeparator" type="HSeparator" parent="Main/RightPanel/StandingsPanel/StandingsVBox"]
+modulate = Color(0.3, 0.35, 0.45, 1)
+
+[node name="StandingsScroll" type="ScrollContainer" parent="Main/RightPanel"]
+custom_minimum_size = Vector2(0, 300)
+size_flags_vertical = 3
+
+[node name="StandingsContainer" type="VBoxContainer" parent="Main/RightPanel/StandingsScroll"]
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme_override_constants/separation = 1
+
+[node name="ControlsVBox" type="VBoxContainer" parent="Main/RightPanel"]
+theme_override_constants/separation = 8
+
+[node name="ControlsTitle" type="Label" parent="Main/RightPanel/ControlsVBox"]
+text = "YOUR CARS"
+theme_override_font_sizes/font_size = 13
+theme_override_colors/font_color = Color(0.6, 0.65, 0.75, 1)
+
+[node name="Car1Panel" parent="Main/RightPanel/ControlsVBox" instance=ExtResource("2")]
+
+[node name="Car2Panel" parent="Main/RightPanel/ControlsVBox" instance=ExtResource("2")]
+
+[node name="Footer" type="HBoxContainer" parent="."]
+anchor_top = 0.92
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 20.0
+offset_right = -20.0
+offset_bottom = -10.0
+theme_override_constants/separation = 20
+
+[node name="StatusLabel" type="Label" parent="Footer"]
+text = "Waiting for race start..."
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 13
+theme_override_colors/font_color = Color(0.85, 0.9, 1, 1)
+
+[node name="Spacer" type="Control" parent="Footer"]
+size_flags_horizontal = 3 

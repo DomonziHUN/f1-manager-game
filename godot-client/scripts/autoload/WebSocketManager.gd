@@ -1,335 +1,272 @@
 extends Node
 
-# WebSocket connection
-var websocket: WebSocketPeer
-var websocket_url: String = "ws://localhost:3000"
-var is_connected: bool = false
+# =========================
+# ÁLLAPOT VÁLTOZÓK
+# =========================
+var socket: WebSocketPeer = WebSocketPeer.new()
+
+var is_connected: bool = false   # ← kapcsolat állapot
 var is_authenticated: bool = false
-var connection_timeout: float = 10.0
-var connection_timer: float = 0.0
 
-# Reconnection
-var reconnect_timer: Timer
-var reconnect_attempts: int = 0
-var max_reconnect_attempts: int = 5
+var ws_url: String = "ws://localhost:3000"
+var auth_token: String = ""
 
-# Signals
-signal connected()
-signal disconnected()
-signal authenticated(user_data: Dictionary)
-signal auth_error(error: String)
+# =========================
+# SIGNALOK
+# =========================
 
-# Matchmaking signals
+# EREDETI SIGNAL NEVEK – ezekre figyelnek a kontrollerek
+signal connected()                         # MatchmakingController ezt várja
+signal disconnected()                      # MatchmakingController ezt várja
+signal authenticated(user_data: Dictionary)  # MatchmakingController ezt várja
+signal auth_error(error_message: String)
+
+# Matchmaking
 signal queue_joined(data: Dictionary)
 signal queue_left()
-signal queue_error(error: String)
 signal queue_update(data: Dictionary)
-signal match_found(data: Dictionary)
+signal queue_error(error_message: String)
+signal match_found(match_data: Dictionary)
 
-# Race / quali signals
+# Quali / prep
 signal race_preparation_update(data: Dictionary)
 signal qualifying_start(data: Dictionary)
-signal weather_update(data: Dictionary)
-signal race_start(data: Dictionary)
-signal race_update(data: Dictionary)
-signal race_finished(data: Dictionary)
 signal qualifying_results(data: Dictionary)
+signal weather_update(data: Dictionary)
+
+# Verseny
+signal race_prepare(data: Dictionary)
+signal race_countdown(data: Dictionary)
+signal race_start(data: Dictionary)
+signal race_state(state: Dictionary)
+signal race_event(event: Dictionary)
+signal race_end(results: Dictionary)
+signal race_player_disconnected(data: Dictionary)
 
 func _ready() -> void:
-	print("🔌 WebSocketManager initialized")
-	reconnect_timer = Timer.new()
-	reconnect_timer.wait_time = 3.0
-	reconnect_timer.one_shot = true
-	reconnect_timer.timeout.connect(_attempt_reconnect)
-	add_child(reconnect_timer)
+	set_process(true)
+	print("📡 WebSocketManager initialized")
 
-# ==========================
-# CONNECTION / AUTH
-# ==========================
+func _process(_delta: float) -> void:
+	socket.poll()
+
+	var state := socket.get_ready_state()
+
+	# Kapcsolat elveszett
+	if state == WebSocketPeer.STATE_CLOSED:
+		if is_connected:
+			is_connected = false
+			is_authenticated = false
+			disconnected.emit()
+			print("❌ WebSocket connection lost")
+		return
+
+	# Kapcsolat létrejött
+	if state == WebSocketPeer.STATE_OPEN:
+		if not is_connected:
+			is_connected = true
+			connected.emit()
+			print("✅ WebSocket connected")
+
+		while socket.get_available_packet_count() > 0:
+			var packet: PackedByteArray = socket.get_packet()
+			var json_string := packet.get_string_from_utf8()
+
+			var json := JSON.new()
+			var err := json.parse(json_string)
+			if err == OK:
+				var data: Variant = json.data
+				if typeof(data) == TYPE_DICTIONARY:
+					_handle_message(data)
+				else:
+					print("⚠️ Received non-dictionary JSON")
+			else:
+				print("❌ JSON parse error: ", json_string)
+
+# =========================
+# KAPCSOLATKEZELÉS
+# =========================
 
 func connect_to_server() -> void:
-	if is_connected:
-		print("⚠️ Already connected to WebSocket")
-		return
-	
-	print("🔌 Connecting to WebSocket: " + websocket_url)
-	websocket = WebSocketPeer.new()
-	var error: int = websocket.connect_to_url(websocket_url)
-	if error != OK:
-		print("❌ Failed to initiate WebSocket connection: " + str(error))
-		_handle_connection_error()
-		return
-	
-	connection_timer = 0.0
-	print("⏳ WebSocket connection initiated, waiting for response...")
+	print("🔌 Connecting to: ", ws_url)
+	var err := socket.connect_to_url(ws_url)
+	if err != OK:
+		print("❌ Connection failed: ", err)
+		disconnected.emit()
 
 func disconnect_from_server() -> void:
-	if websocket:
-		websocket.close()
+	socket.close()
 	is_connected = false
 	is_authenticated = false
-	reconnect_timer.stop()
-	print("🔌 Disconnected from WebSocket")
-	disconnected.emit()
+	print("🔌 Disconnected from server")
+
+func is_ws_connected() -> bool:
+	return is_connected and socket.get_ready_state() == WebSocketPeer.STATE_OPEN
+
+# =========================
+# ÜZENET KÜLDÉS
+# =========================
+
+func _send_message(event: String, data: Dictionary = {}) -> void:
+	if not is_ws_connected():
+		print("⚠️ Cannot send message, not connected")
+		return
+
+	var message := {
+		"event": event,
+		"data": data
+	}
+
+	var json_string := JSON.stringify(message)
+	var err := socket.send_text(json_string)
+	if err != OK:
+		print("❌ Failed to send message: ", err)
+	else:
+		print("📤 Sent: ", event)
+
+# =========================
+# BEJÖVŐ ÜZENET KEZELÉSE
+# =========================
+
+func _handle_message(message: Dictionary) -> void:
+	var event: String = str(message.get("event", ""))
+	var data: Dictionary = message.get("data", {})
+
+	print("📥 Received event: ", event)
+
+	match event:
+		"welcome":
+			print("👋 Welcome: ", data)
+
+		"authenticated":
+			is_authenticated = true
+			authenticated.emit(data)
+			print("✅ Authenticated")
+
+		"auth_error":
+			var err_text := str(data.get("error", "Unknown auth error"))
+			auth_error.emit(err_text)
+
+		# MATCHMAKING
+		"queue_joined":
+			queue_joined.emit(data)
+
+		"queue_left":
+			queue_left.emit()
+
+		"queue_update":
+			queue_update.emit(data)
+
+		"queue_error":
+			var qerr := str(data.get("error", "Unknown queue error"))
+			queue_error.emit(qerr)
+
+		"match_found":
+			match_found.emit(data)
+			print("🎮 Match found")
+
+		# RACE PREP / QUALI
+		"race_preparation_update":
+			race_preparation_update.emit(data)
+
+		"qualifying_start":
+			qualifying_start.emit(data)
+
+		"qualifying_results":
+			qualifying_results.emit(data)
+
+		"weather_update":
+			weather_update.emit(data)
+
+		# RACE
+		"race:prepare", "race_prepare":
+			race_prepare.emit(data)
+
+		"race:countdown", "race_countdown":
+			race_countdown.emit(data)
+
+		"race:start", "race_start":
+			race_start.emit(data)
+
+		"race:state", "race_state":
+			race_state.emit(data)
+
+		"race:event", "race_event":
+			race_event.emit(data)
+
+		"race:end", "race_end":
+			race_end.emit(data)
+
+		"race:player_disconnected", "race_player_disconnected":
+			race_player_disconnected.emit(data)
+
+		"error":
+			print("❌ Server error: ", data.get("error", "Unknown"))
+
+		_:
+			print("⚠️ Unknown event: ", event)
+
+# =========================
+# AUTH
+# =========================
 
 func authenticate(token: String) -> void:
-	if not is_connected:
-		print("❌ Cannot authenticate: not connected")
-		return
-	
-	print("🔐 Sending authentication...")
-	var auth_message := {
-		"event": "authenticate",
-		"data": {"token": token}
-	}
-	websocket.send_text(JSON.stringify(auth_message))
+	auth_token = token
+	_send_message("authenticate", {"token": token})
 
-# ==========================
-# MATCHMAKING HELPERS
-# ==========================
+# =========================
+# MATCHMAKING API
+# =========================
 
 func join_queue() -> void:
-	if not is_authenticated:
-		print("❌ Cannot join queue: not authenticated")
-		return
-	print("🎮 Joining matchmaking queue...")
 	_send_message("join_queue", {})
 
 func leave_queue() -> void:
-	if not is_authenticated:
-		print("❌ Cannot leave queue: not authenticated")
-		return
-	print("🚪 Leaving matchmaking queue...")
 	_send_message("leave_queue", {})
 
 func find_match() -> void:
-	if not is_authenticated:
-		print("❌ Cannot find match: not authenticated")
-		return
-	print("🔍 Requesting match search...")
 	_send_message("find_match", {})
 
-# ==========================
-# RACE / QUALI HELPERS
-# ==========================
+# =========================
+# QUALI / PREP
+# =========================
 
 func send_race_preparation(data: Dictionary) -> void:
-	if not is_authenticated:
-		print("❌ Cannot send race preparation: not authenticated")
-		return
-	
-	print("🏁 Sending race preparation: " + str(data))
 	_send_message("race_preparation", data)
 
 func request_qualifying_results(match_id: String) -> void:
-	if not is_authenticated:
-		print("❌ Cannot request qualifying results: not authenticated")
-		return
-	
-	print("🏁 Requesting qualifying results for match: " + match_id)
 	_send_message("request_qualifying_results", {"matchId": match_id})
 
-func send_qualifying_ready() -> void:
-	if not is_authenticated:
-		print("❌ Cannot send qualifying ready: not authenticated")
-		return
-	print("🏁 Sending qualifying ready...")
-	_send_message("qualifying_ready", {})
+# =========================
+# RACE COMMANDS
+# =========================
 
-# ==========================
-# MAIN PROCESS LOOP
-# ==========================
+func join_race(race_id: String) -> void:
+	print("🏁 Joining race: ", race_id)
+	_send_message("race_join", {
+		"raceId": race_id,
+		"matchId": race_id
+	})
 
-func _process(delta: float) -> void:
-	if websocket == null:
-		return
-	
-	websocket.poll()
-	var state: int = websocket.get_ready_state()
-	
-	match state:
-		WebSocketPeer.STATE_CONNECTING:
-			connection_timer += delta
-			if connection_timer > connection_timeout:
-				print("❌ WebSocket connection timeout after " + str(connection_timeout) + " seconds")
-				_handle_connection_error()
-				return
-			
-		WebSocketPeer.STATE_OPEN:
-			if not is_connected:
-				_handle_connection_success()
-			
-			while websocket.get_available_packet_count() > 0:
-				var packet: PackedByteArray = websocket.get_packet()
-				var message_text: String = packet.get_string_from_utf8()
-				print("📥 Raw message: " + message_text)
-				_handle_message(message_text)
-			
-		WebSocketPeer.STATE_CLOSING:
-			pass
-			
-		WebSocketPeer.STATE_CLOSED:
-			if is_connected:
-				print("❌ WebSocket closed")
-				_handle_connection_lost()
+func leave_race() -> void:
+	_send_message("race_leave", {})
 
-# ==========================
-# CONNECTION HANDLERS
-# ==========================
+func send_pit_stop(car_id: String, new_compound: String = "medium") -> void:
+	print("🛑 Pit stop requested for: ", car_id, " Tire: ", new_compound)
+	_send_message("race_command", {
+		"carId": car_id,
+		"command": {
+			"type": "PIT",
+			"compound": new_compound
+		}
+	})
 
-func _handle_connection_success() -> void:
-	is_connected = true
-	reconnect_attempts = 0
-	reconnect_timer.stop()
-	connection_timer = 0.0
-	print("✅ WebSocket connected successfully!")
-	connected.emit()
-
-func _handle_connection_lost() -> void:
-	is_connected = false
-	is_authenticated = false
-	print("❌ WebSocket connection lost")
-	disconnected.emit()
-	_attempt_reconnect()
-
-func _handle_connection_error() -> void:
-	print("❌ WebSocket connection error")
-	if websocket:
-		websocket.close()
-	is_connected = false
-	is_authenticated = false
-	_attempt_reconnect()
-
-func _attempt_reconnect() -> void:
-	if reconnect_attempts >= max_reconnect_attempts:
-		print("❌ Max reconnection attempts reached")
-		return
-	
-	reconnect_attempts += 1
-	print("🔄 Attempting to reconnect... (" + str(reconnect_attempts) + "/" + str(max_reconnect_attempts) + ")")
-	
-	if websocket:
-		websocket.close()
-	
-	reconnect_timer.start()
-
-# ==========================
-# LOW-LEVEL SEND / RECEIVE
-# ==========================
-
-func _send_message(ev: String, data: Dictionary) -> void:
-	if not is_connected:
-		print("❌ Cannot send message: not connected")
-		return
-	
-	var message := {
-		"event": ev,
-		"data": data
-	}
-	var json_string: String = JSON.stringify(message)
-	websocket.send_text(json_string)
-	print("📤 Sent: " + ev)
-
-func _handle_message(message_text: String) -> void:
-	var json := JSON.new()
-	var parse_result: int = json.parse(message_text)
-	
-	if parse_result != OK:
-		print("❌ Failed to parse JSON: " + message_text)
-		return
-	
-	var data: Dictionary = json.data
-	print("📨 Parsed data: " + str(data))
-	
-	if data.has("event"):
-		var ev: String = str(data.get("event", ""))
-		var payload: Dictionary = data.get("data", {})
-		_handle_event(ev, payload)
-	elif data.has("success"):
-		if data.success:
-			is_authenticated = true
-			print("✅ Authentication successful (legacy format)")
-			authenticated.emit(data)
-		else:
-			var err: String = str(data.get("error", "Unknown error"))
-			print("❌ Authentication failed: " + err)
-			auth_error.emit(err)
-	else:
-		print("⚠️ Unknown message format: " + str(data))
-
-# ==========================
-# EVENT DISPATCH
-# ==========================
-
-func _handle_event(ev: String, payload: Dictionary) -> void:
-	match ev:
-		"welcome":
-			print("💬 Server welcome: " + str(payload.get("message", "")))
-		
-		"error":
-			var err: String = str(payload.get("error", "Unknown error"))
-			print("❌ Server error: " + err)
-			queue_error.emit(err)
-		
-		"authenticated":
-			is_authenticated = true
-			print("✅ WebSocket authentication successful")
-			authenticated.emit(payload)
-		
-		"auth_error":
-			is_authenticated = false
-			var er: String = str(payload.get("error", "Unknown auth error"))
-			print("❌ WebSocket authentication failed: " + er)
-			auth_error.emit(er)
-		
-		"queue_joined":
-			print("✅ Joined matchmaking queue")
-			queue_joined.emit(payload)
-		
-		"queue_left":
-			print("✅ Left matchmaking queue")
-			queue_left.emit()
-		
-		"queue_error":
-			var qerr: String = str(payload.get("error", "Unknown queue error"))
-			print("❌ Queue error: " + qerr)
-			queue_error.emit(qerr)
-		
-		"queue_update":
-			print("📊 Queue update: " + str(payload))
-			queue_update.emit(payload)
-		
-		"match_found":
-			print("🎉 Match found!")
-			match_found.emit(payload)
-		
-		"race_preparation_update":
-			print("🏁 Race preparation update: " + str(payload))
-			race_preparation_update.emit(payload)
-		
-		"qualifying_start":
-			print("🏁 Qualifying starting: " + str(payload))
-			qualifying_start.emit(payload)
-		
-		"weather_update":
-			print("🌤️ Weather update: " + str(payload))
-			weather_update.emit(payload)
-		
-		"race_start":
-			print("🏁 Race starting: " + str(payload))
-			race_start.emit(payload)
-		
-		"race_update":
-			print("🏎️ Race update: " + str(payload))
-			race_update.emit(payload)
-		
-		"race_finished":
-			print("🏆 Race finished: " + str(payload))
-			race_finished.emit(payload)
-		
-		"qualifying_results":
-			print("🏁 Qualifying results received")
-			qualifying_results.emit(payload)
-		
-		_:
-			print("⚠️ Unknown WebSocket event: " + ev)
+func send_ers_mode(car_id: String, mode: String) -> void:
+	print("🔋 ERS mode change: ", car_id, " Mode: ", mode)
+	_send_message("race_command", {
+		"carId": car_id,
+		"command": {
+			"type": "ERS_MODE",
+			"mode": mode
+		}
+	})

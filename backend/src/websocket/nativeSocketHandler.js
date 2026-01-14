@@ -9,14 +9,10 @@ class NativeSocketHandler {
     constructor(server) {
         this.wss = new WebSocket.Server({ server });
 
-        // userId -> socket, socket -> userId
         this.userSockets = new Map();
         this.socketUsers = new Map();
-
-        // Race szobák: raceId -> Set<socket>
         this.raceSockets = new Map();
 
-        // Adapter RaceService-hez (Socket.IO-s .to(raceId).emit(...) emulálása)
         const ioAdapter = {
             to: (raceId) => ({
                 emit: (event, data) => this.broadcastToRace(raceId, event, data)
@@ -25,7 +21,7 @@ class NativeSocketHandler {
         this.raceService = new RaceService(ioAdapter);
 
         this.setupEventHandlers();
-        console.log('🔌 Native WebSocket server initialized on port', server.address()?.port || 'unknown');
+        console.log('🔌 Native WebSocket server initialized');
     }
 
     setupEventHandlers() {
@@ -38,7 +34,6 @@ class NativeSocketHandler {
             socket.on('message', (data) => {
                 try {
                     const message = JSON.parse(data.toString());
-                    console.log('📥 Received message:', message);
                     this.handleMessage(socket, message);
                 } catch (error) {
                     console.error('❌ Failed to parse message:', error);
@@ -52,11 +47,7 @@ class NativeSocketHandler {
     }
 
     handleMessage(socket, message) {
-        console.log('📥 Full message received:', message);
-
-        // Legacy: direkt token
         if (message.token && !message.event) {
-            console.log('🔐 Direct auth message detected');
             this.handleAuthentication(socket, message);
             return;
         }
@@ -83,6 +74,14 @@ class NativeSocketHandler {
                 this.handleFindMatch(socket);
                 break;
 
+            // RACE PREPARATION
+            case 'race_preparation':
+                this.handleRacePreparation(socket, data);
+                break;
+            case 'request_qualifying_results':
+                this.handleQualifyingRequest(socket, data);
+                break;
+
             // RACE
             case 'race_join':
                 this.handleRaceJoin(socket, data);
@@ -92,14 +91,6 @@ class NativeSocketHandler {
                 break;
             case 'race_leave':
                 this.handleRaceLeave(socket);
-                break;
-
-            // KVALI / PREP
-            case 'race_preparation':
-                this.handleRacePreparation(socket, data);
-                break;
-            case 'request_qualifying_results':
-                this.handleQualifyingRequest(socket, data);
                 break;
 
             default:
@@ -131,7 +122,7 @@ class NativeSocketHandler {
             this.userSockets.set(userId, socket);
             this.socketUsers.set(socket, userId);
             socket.userId = userId;
-            socket.user = user; // fontos: itt tároljuk a ligát is
+            socket.user = user;
 
             this.sendToSocket(socket, 'authenticated', {
                 success: true,
@@ -144,7 +135,6 @@ class NativeSocketHandler {
 
             console.log(`✅ User authenticated: ${user.username} (${userId})`);
 
-            // KÜLDJÜK AZ AKTUÁLIS QUEUE MÉRETET A LIGÁJÁRA
             try {
                 const leagueId = user.current_league;
                 const queueCount = db.prepare(`
@@ -307,19 +297,15 @@ class NativeSocketHandler {
                 LIMIT 1
             `).get(leagueId);
 
-            const weatherTypes = ['dry', 'dry', 'dry', 'light_rain', 'heavy_rain'];
+            const weatherTypes = ['dry', 'dry', 'dry', 'cloudy', 'light_rain'];
             const weather = weatherTypes[Math.floor(Math.random() * weatherTypes.length)];
             const seed = Math.floor(Math.random() * 2147483647);
 
             db.prepare(`
                 INSERT INTO active_matches (
-                    id, player1_id, player2_id, league_id, track_id, status
-                ) VALUES (?, ?, ?, ?, ?, 'preparing')
-            `).run(matchId, player1.user_id, player2.user_id, leagueId, track.id);
-
-            db.prepare(`
-                UPDATE active_matches SET weather = ? WHERE id = ?
-            `).run(weather, matchId);
+                    id, player1_id, player2_id, league_id, track_id, status, weather
+                ) VALUES (?, ?, ?, ?, ?, 'preparing', ?)
+            `).run(matchId, player1.user_id, player2.user_id, leagueId, track.id, weather);
 
             db.prepare(`
                 DELETE FROM matchmaking_queue WHERE user_id IN (?, ?)
@@ -365,7 +351,7 @@ class NativeSocketHandler {
                 });
             }
 
-            console.log(`🏁 Match created: ${player1User.username} vs ${player2User.username} on ${track.name} (weather=${weather}, seed=${seed})`);
+            console.log(`🏁 Match created: ${player1User.username} vs ${player2User.username} on ${track.name}`);
 
             this.broadcastQueueUpdate(leagueId);
         } catch (error) {
@@ -380,7 +366,6 @@ class NativeSocketHandler {
                 WHERE league_id = ? AND status = 'waiting'
             `).get(leagueId);
 
-            // ÚJ: minden ligabeli user socketet értesítünk, nem csak a queue-ban lévőket
             for (const [userId, socket] of this.userSockets.entries()) {
                 const user = socket.user;
                 if (!user) continue;
@@ -397,7 +382,7 @@ class NativeSocketHandler {
     }
 
     // =========================
-    // RACE PREPARATION (gumik mentése)
+    // RACE PREPARATION
     // =========================
     handleRacePreparation(socket, data) {
         if (!socket.userId) {
@@ -470,7 +455,7 @@ class NativeSocketHandler {
     }
 
     // =========================
-    // QUALIFYING (szerver oldali)
+    // QUALIFYING
     // =========================
     handleQualifyingRequest(socket, data) {
         if (!socket.userId) {
@@ -651,7 +636,6 @@ class NativeSocketHandler {
     sendToSocket(socket, event, data) {
         if (socket.readyState === WebSocket.OPEN) {
             socket.send(JSON.stringify({ event, data }));
-            console.log(`📤 Sent to client: ${event}`);
         }
     }
 
