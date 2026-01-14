@@ -401,10 +401,7 @@ const seedCarParts = () => {
 const seedTracks = () => {
     const tracks = [
         // Always available (League 1+)
-        { id: 'track_bahrain', name: 'Bahrain International Circuit', country: 'Bahrain', city: 'Sakhir', total_laps: 15, track_length_km: 5.412, pit_lane_time_loss: 21.0, drs_zones: 3, difficulty: 'easy', overtaking_difficulty: 'easy', tire_wear_factor: 1.1, weather_variability: 0.1, unlock_league: 1 },
-        { id: 'track_monza', name: 'Autodromo Nazionale Monza', country: 'Italy', city: 'Monza', total_laps: 15, track_length_km: 5.793, pit_lane_time_loss: 24.0, drs_zones: 2, difficulty: 'easy', overtaking_difficulty: 'easy', tire_wear_factor: 0.85, weather_variability: 0.2, unlock_league: 1 },
-        { id: 'track_spa', name: 'Circuit de Spa-Francorchamps', country: 'Belgium', city: 'Spa', total_laps: 12, track_length_km: 7.004, pit_lane_time_loss: 22.0, drs_zones: 2, difficulty: 'medium', overtaking_difficulty: 'medium', tire_wear_factor: 1.0, weather_variability: 0.6, unlock_league: 1 },
-        
+        { id: 'track_hungaroring', name: 'Mogyoród', country: 'Bahrain', city: 'Sakhir', total_laps: 15, track_length_km: 5.412, pit_lane_time_loss: 21.0, drs_zones: 3, difficulty: 'easy', overtaking_difficulty: 'easy', tire_wear_factor: 1.1, weather_variability: 0.1, unlock_league: 1 },
         // Silver League (League 2+)
         { id: 'track_silverstone', name: 'Silverstone Circuit', country: 'UK', city: 'Silverstone', total_laps: 15, track_length_km: 5.891, pit_lane_time_loss: 20.5, drs_zones: 2, difficulty: 'medium', overtaking_difficulty: 'medium', tire_wear_factor: 1.15, weather_variability: 0.5, unlock_league: 2 },
         { id: 'track_suzuka', name: 'Suzuka International Racing Course', country: 'Japan', city: 'Suzuka', total_laps: 15, track_length_km: 5.807, pit_lane_time_loss: 22.0, drs_zones: 1, difficulty: 'hard', overtaking_difficulty: 'hard', tire_wear_factor: 1.2, weather_variability: 0.3, unlock_league: 2 },

@@ -5,7 +5,7 @@ const { v4: uuidv4 } = require('uuid');
 
 class RaceService {
     constructor(io) {
-        this.io = io; // natív WS esetén: ide adhatsz be egy saját "buszt"
+        this.io = io;
         this.activeRaces = new Map(); // raceId -> { players, engine, state, interval }
     }
 
@@ -30,7 +30,7 @@ class RaceService {
             this.activeRaces.set(raceId, race);
         }
 
-        socket.join && socket.join(raceId); // Socket.IO esetén
+        socket.join && socket.join(raceId); // csak Socket.IO esetén van értelme
         race.players.set(userId, {
             socketId: socket.id,
             userId,
@@ -53,12 +53,12 @@ class RaceService {
         const race = this.activeRaces.get(raceId);
         if (!race) return;
 
-        // Match betöltése az active_matches táblából + pálya infó
         const match = db.prepare(`
             SELECT 
                 am.*,
                 t.name AS track_name,
-                t.total_laps
+                t.total_laps,
+                t.tire_wear_factor
             FROM active_matches am
             JOIN tracks t ON am.track_id = t.id
             WHERE am.id = ?
@@ -69,7 +69,6 @@ class RaceService {
             return;
         }
 
-        // Biztosítsuk a player1 / player2 sorrendet
         const playerIds = [match.player1_id, match.player2_id];
 
         const playersData = playerIds.map(userId => this.loadPlayerRaceData(userId));
@@ -79,14 +78,15 @@ class RaceService {
             track: {
                 id: match.track_id,
                 name: match.track_name,
-                laps: match.total_laps
+                laps: match.total_laps,
+                tire_wear_factor: match.tire_wear_factor
             },
+            weather: match.weather || 'dry',
             players: playersData
         });
 
         race.state = 'countdown';
 
-        // Race info broadcast
         this.io.to && this.io.to(raceId).emit('race:prepare', {
             raceId,
             players: playersData.map(p => ({
@@ -102,7 +102,6 @@ class RaceService {
             totalCars: race.engine.cars?.size || 20
         });
 
-        // 3-2-1 visszaszámlálás
         for (let i = 3; i > 0; i--) {
             this.io.to && this.io.to(raceId).emit('race:countdown', { seconds: i });
             await this.sleep(1000);
@@ -197,7 +196,7 @@ class RaceService {
                     console.error('endRace error:', err);
                 });
             }
-        }, 50); // 20 tick/sec
+        }, 50);
     }
 
     handleCommand(socket, data) {
@@ -245,7 +244,6 @@ class RaceService {
             console.warn(`endRace: active_match nem található raceId=${raceId}`);
         }
 
-        // Player1 / Player2 userId
         const player1Id = match ? match.player1_id : results.player1UserId;
         const player2Id = match ? match.player2_id : results.player2UserId;
 
@@ -258,7 +256,6 @@ class RaceService {
             if (results.winnerOwner === 'player2') winnerUserId = player2Id;
         }
 
-        // Legjobb pozíciók meghatározása
         const bestPosFor = (owner) => {
             const cars = results.standings.filter(s => s.owner === owner);
             if (!cars.length) return null;
@@ -268,7 +265,6 @@ class RaceService {
         const player1BestPos = bestPosFor('player1');
         const player2BestPos = bestPosFor('player2');
 
-        // Liga pontok változása
         let leagueId = match ? match.league_id : 1;
         let league = db.prepare('SELECT * FROM leagues WHERE id = ?').get(leagueId);
 
@@ -284,7 +280,6 @@ class RaceService {
         const player1Delta = calcDelta(player1Id);
         const player2Delta = calcDelta(player2Id);
 
-        // User statok frissítése
         const updateUser = (userId, delta, isWinner) => {
             if (!userId) return;
             db.prepare(`
@@ -301,7 +296,6 @@ class RaceService {
         updateUser(player1Id, player1Delta, winnerUserId && player1Id === winnerUserId);
         updateUser(player2Id, player2Delta, winnerUserId && player2Id === winnerUserId);
 
-        // active_matches lezárása + state mentése
         if (match) {
             db.prepare(`
                 UPDATE active_matches
@@ -316,7 +310,6 @@ class RaceService {
             );
         }
 
-        // Race history mentése
         db.prepare(`
             INSERT INTO race_history (
                 id, 
@@ -346,17 +339,15 @@ class RaceService {
             player2BestPos,
             player1Delta,
             player2Delta,
-            winnerUserId === player1Id ? 200 : 100, // egyszerű jutalom logika
+            winnerUserId === player1Id ? 200 : 100,
             winnerUserId === player2Id ? 200 : 100,
             race.engine.totalLaps,
             results.raceTimeSeconds,
             JSON.stringify(results)
         );
 
-        // Eredmények kiküldése a klienseknek
         this.io.to && this.io.to(raceId).emit('race:end', results);
 
-        // Cache takarítás
         setTimeout(() => {
             this.activeRaces.delete(raceId);
         }, 30000);

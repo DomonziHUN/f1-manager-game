@@ -94,7 +94,10 @@ class NativeSocketHandler {
                 this.handleRaceLeave(socket);
                 break;
 
-            // KVALI
+            // KVALI / PREP
+            case 'race_preparation':
+                this.handleRacePreparation(socket, data);
+                break;
             case 'request_qualifying_results':
                 this.handleQualifyingRequest(socket, data);
                 break;
@@ -128,7 +131,7 @@ class NativeSocketHandler {
             this.userSockets.set(userId, socket);
             this.socketUsers.set(socket, userId);
             socket.userId = userId;
-            socket.user = user;
+            socket.user = user; // fontos: itt tároljuk a ligát is
 
             this.sendToSocket(socket, 'authenticated', {
                 success: true,
@@ -140,6 +143,23 @@ class NativeSocketHandler {
             });
 
             console.log(`✅ User authenticated: ${user.username} (${userId})`);
+
+            // KÜLDJÜK AZ AKTUÁLIS QUEUE MÉRETET A LIGÁJÁRA
+            try {
+                const leagueId = user.current_league;
+                const queueCount = db.prepare(`
+                    SELECT COUNT(*) as count FROM matchmaking_queue 
+                    WHERE league_id = ? AND status = 'waiting'
+                `).get(leagueId);
+
+                this.sendToSocket(socket, 'queue_update', {
+                    playersInQueue: queueCount.count,
+                    league: leagueId
+                });
+            } catch (e) {
+                console.error('❌ Failed to send initial queue_update:', e);
+            }
+
         } catch (error) {
             console.error('❌ Authentication error:', error);
             this.sendToSocket(socket, 'auth_error', { error: 'Invalid token' });
@@ -360,23 +380,92 @@ class NativeSocketHandler {
                 WHERE league_id = ? AND status = 'waiting'
             `).get(leagueId);
 
-            const usersInQueue = db.prepare(`
-                SELECT DISTINCT mq.user_id 
-                FROM matchmaking_queue mq
-                WHERE mq.league_id = ? AND mq.status = 'waiting'
-            `).all(leagueId);
+            // ÚJ: minden ligabeli user socketet értesítünk, nem csak a queue-ban lévőket
+            for (const [userId, socket] of this.userSockets.entries()) {
+                const user = socket.user;
+                if (!user) continue;
+                if (user.current_league !== leagueId) continue;
 
-            usersInQueue.forEach(user => {
-                const socket = this.userSockets.get(user.user_id);
-                if (socket) {
-                    this.sendToSocket(socket, 'queue_update', {
-                        playersInQueue: queueCount.count,
-                        league: leagueId
-                    });
-                }
-            });
+                this.sendToSocket(socket, 'queue_update', {
+                    playersInQueue: queueCount.count,
+                    league: leagueId
+                });
+            }
         } catch (error) {
             console.error('❌ Queue update error:', error);
+        }
+    }
+
+    // =========================
+    // RACE PREPARATION (gumik mentése)
+    // =========================
+    handleRacePreparation(socket, data) {
+        if (!socket.userId) {
+            this.sendToSocket(socket, 'error', { error: 'Not authenticated' });
+            return;
+        }
+
+        try {
+            const matchId = data?.matchId;
+            if (!matchId) {
+                this.sendToSocket(socket, 'error', { error: 'No matchId in race_preparation' });
+                return;
+            }
+
+            const match = db.prepare('SELECT * FROM active_matches WHERE id = ?').get(matchId);
+            if (!match) {
+                this.sendToSocket(socket, 'error', { error: 'Match not found' });
+                return;
+            }
+
+            let playerTag = null;
+            if (match.player1_id === socket.userId) playerTag = 'player1';
+            else if (match.player2_id === socket.userId) playerTag = 'player2';
+            else {
+                this.sendToSocket(socket, 'error', { error: 'User not in this match' });
+                return;
+            }
+
+            let state = {};
+            if (match.race_state) {
+                try { state = JSON.parse(match.race_state); } catch (e) { state = {}; }
+            }
+            if (!state.preparation) state.preparation = {};
+            if (!state.preparation[playerTag]) state.preparation[playerTag] = {};
+
+            state.preparation[playerTag].tires = {
+                '1': (data.pilot1_tire || 'medium').toLowerCase(),
+                '2': (data.pilot2_tire || 'medium').toLowerCase()
+            };
+            state.preparation[playerTag].ready = true;
+
+            db.prepare('UPDATE active_matches SET race_state = ? WHERE id = ?')
+              .run(JSON.stringify(state), matchId);
+
+            this.sendToSocket(socket, 'race_preparation_update', {
+                success: true,
+                opponent_ready: false
+            });
+
+            const otherTag = playerTag === 'player1' ? 'player2' : 'player1';
+            const bothReady =
+                state.preparation[playerTag]?.ready &&
+                state.preparation[otherTag]?.ready;
+
+            if (bothReady) {
+                const s1 = this.userSockets.get(match.player1_id);
+                const s2 = this.userSockets.get(match.player2_id);
+                const payload = { matchId };
+
+                if (s1) this.sendToSocket(s1, 'qualifying_start', payload);
+                if (s2 && s2 !== s1) this.sendToSocket(s2, 'qualifying_start', payload);
+
+                console.log(`🏁 Both players ready, starting qualifying for match ${matchId}`);
+            }
+
+        } catch (err) {
+            console.error('❌ race_preparation error:', err);
+            this.sendToSocket(socket, 'error', { error: 'Failed to save race preparation' });
         }
     }
 
@@ -416,14 +505,20 @@ class NativeSocketHandler {
             }
 
             if (!state.qualifying) {
-                // Nincs még mentett kvali → számoljuk ki
                 const track = db.prepare('SELECT * FROM tracks WHERE id = ?').get(match.track_id);
                 const weather = match.weather || 'dry';
 
-                const players = [
-                    this.raceService.loadPlayerRaceData(match.player1_id),
-                    this.raceService.loadPlayerRaceData(match.player2_id)
-                ];
+                const prep = state.preparation || {};
+                const p1Tires = (prep.player1 && prep.player1.tires) || {};
+                const p2Tires = (prep.player2 && prep.player2.tires) || {};
+
+                const player1Data = this.raceService.loadPlayerRaceData(match.player1_id);
+                const player2Data = this.raceService.loadPlayerRaceData(match.player2_id);
+
+                player1Data.selectedTires = p1Tires;
+                player2Data.selectedTires = p2Tires;
+
+                const players = [player1Data, player2Data];
 
                 const engine = new QualifyingEngine({
                     track: {
@@ -435,7 +530,7 @@ class NativeSocketHandler {
                     players
                 });
 
-                const result = engine.run(); // { grid }
+                const result = engine.run();
                 state.qualifying = result.grid;
 
                 db.prepare('UPDATE active_matches SET race_state = ? WHERE id = ?')

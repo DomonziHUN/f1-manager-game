@@ -1,376 +1,356 @@
 extends Control
 
-# UI References
-@onready var timer_label = $VBoxContainer/Header/HeaderContent/TimerLabel
-@onready var track_info = $VBoxContainer/Header/HeaderContent/TrackInfo
-@onready var weather_info = $VBoxContainer/Header/HeaderContent/WeatherInfo
+# Header
+@onready var title_label: Label = $Header/TitleLabel
+@onready var track_label: Label = $Header/TrackLabel
+@onready var weather_label: Label = $Header/WeatherLabel
+@onready var time_label: Label = $Header/TimeLabel
 
-# Tire buttons
-@onready var soft_tire = $VBoxContainer/MainContent/LeftPanel/TireSelection/TireContent/DryTires/SoftTire
-@onready var medium_tire = $VBoxContainer/MainContent/LeftPanel/TireSelection/TireContent/DryTires/MediumTire
-@onready var hard_tire = $VBoxContainer/MainContent/LeftPanel/TireSelection/TireContent/DryTires/HardTire
-@onready var inter_tire = $VBoxContainer/MainContent/LeftPanel/TireSelection/TireContent/WetTires/InterTire
-@onready var wet_tire = $VBoxContainer/MainContent/LeftPanel/TireSelection/TireContent/WetTires/WetTire
+# Left – driver cards
+@onready var pilot1_card: Button = $Main/LeftPanel/Margin/LeftContent/Pilot1Card
+@onready var pilot1_name_label: Label = $Main/LeftPanel/Margin/LeftContent/Pilot1Card/Pilot1VBox/PilotName
+@onready var pilot1_team_label: Label = $Main/LeftPanel/Margin/LeftContent/Pilot1Card/Pilot1VBox/PilotTeam
+@onready var pilot1_stats_label: Label = $Main/LeftPanel/Margin/LeftContent/Pilot1Card/Pilot1VBox/PilotStats
+@onready var pilot1_tyre_label: Label = $Main/LeftPanel/Margin/LeftContent/Pilot1Card/Pilot1VBox/PilotTyre
 
-@onready var tire_info = $VBoxContainer/MainContent/LeftPanel/TireSelection/TireContent/TireInfo
+@onready var pilot2_card: Button = $Main/LeftPanel/Margin/LeftContent/Pilot2Card
+@onready var pilot2_name_label: Label = $Main/LeftPanel/Margin/LeftContent/Pilot2Card/Pilot2VBox/PilotName
+@onready var pilot2_team_label: Label = $Main/LeftPanel/Margin/LeftContent/Pilot2Card/Pilot2VBox/PilotTeam
+@onready var pilot2_stats_label: Label = $Main/LeftPanel/Margin/LeftContent/Pilot2Card/Pilot2VBox/PilotStats
+@onready var pilot2_tyre_label: Label = $Main/LeftPanel/Margin/LeftContent/Pilot2Card/Pilot2VBox/PilotTyre
 
-# Right panel
-@onready var opponent_name = $VBoxContainer/MainContent/RightPanel/OpponentInfo/OpponentContent/OpponentName
-@onready var opponent_league = $VBoxContainer/MainContent/RightPanel/OpponentInfo/OpponentContent/OpponentLeague
-@onready var opponent_status = $VBoxContainer/MainContent/RightPanel/OpponentInfo/OpponentContent/OpponentStatus
-@onready var pilot1_info = $VBoxContainer/MainContent/RightPanel/PilotInfo/PilotContent/Pilot1Info
-@onready var pilot2_info = $VBoxContainer/MainContent/RightPanel/PilotInfo/PilotContent/Pilot2Info
+# Center – tyre selection
+@onready var tyre_title_label: Label = $Main/CenterPanel/Margin/CenterContent/TyreTitle
+@onready var soft_button: Button = $Main/CenterPanel/Margin/CenterContent/DryButtons/SoftButton
+@onready var medium_button: Button = $Main/CenterPanel/Margin/CenterContent/DryButtons/MediumButton
+@onready var hard_button: Button = $Main/CenterPanel/Margin/CenterContent/DryButtons/HardButton
+@onready var inter_button: Button = $Main/CenterPanel/Margin/CenterContent/WetButtons/InterButton
+@onready var wet_button: Button = $Main/CenterPanel/Margin/CenterContent/WetButtons/WetButton
+@onready var tyre_info_label: Label = $Main/CenterPanel/Margin/CenterContent/TyreInfo
 
-# Bottom panel
-@onready var status_label = $VBoxContainer/BottomPanel/BottomContent/StatusLabel
-@onready var ready_button = $VBoxContainer/BottomPanel/BottomContent/ReadyButton
+# Right – opponent
+@onready var opponent_title_label: Label = $Main/RightPanel/Margin/RightContent/OpponentTitle
+@onready var opponent_name_label: Label = $Main/RightPanel/Margin/RightContent/OpponentName
+@onready var opponent_league_label: Label = $Main/RightPanel/Margin/RightContent/OpponentLeague
+@onready var opponent_status_label: Label = $Main/RightPanel/Margin/RightContent/OpponentStatus
 
-# Race data
+# Footer
+@onready var status_label: Label = $Footer/StatusLabel
+@onready var ready_button: Button = $Footer/ReadyButton
+
+# Data
 var match_data: Dictionary = {}
-var pilot1_tire: String = ""
-var pilot2_tire: String = ""
-var current_pilot_selection: int = 1  # 1 or 2
+var user_pilots: Array = []
+var current_weather: String = "dry"
+
+var pilot_tires: Array = ["", ""]  # [pilot1, pilot2]
+var selected_pilot_index: int = 0  # 0 vagy 1
+
 var preparation_time: float = 30.0
 var is_ready: bool = false
-var current_weather: String = "dry"
-var user_pilots: Array = []
 
-# All tire buttons for easy management
-var tire_buttons: Array = []
-
-# Tire compounds with weather-specific performance
-var tire_compounds = {
+var tire_compounds: Dictionary = {
 	"soft": {
 		"name": "Soft",
-		"color": "🔴",
+		"emoji": "🔴",
 		"dry_speed": 1.05,
 		"wet_speed": 0.7,
-		"wear_rate": 1.8,
-		"weather_suitability": ["dry"]
+		"wear": "High"
 	},
 	"medium": {
 		"name": "Medium",
-		"color": "🟡",
+		"emoji": "🟡",
 		"dry_speed": 1.0,
 		"wet_speed": 0.65,
-		"wear_rate": 1.0,
-		"weather_suitability": ["dry"]
+		"wear": "Medium"
 	},
 	"hard": {
 		"name": "Hard",
-		"color": "⚪",
-		"dry_speed": 0.95,
+		"emoji": "⚪",
+		"dry_speed": 0.96,
 		"wet_speed": 0.6,
-		"wear_rate": 0.6,
-		"weather_suitability": ["dry"]
+		"wear": "Low"
 	},
 	"intermediate": {
 		"name": "Intermediate",
-		"color": "🟢",
+		"emoji": "🟢",
 		"dry_speed": 0.85,
 		"wet_speed": 1.1,
-		"wear_rate": 1.2,
-		"weather_suitability": ["light_rain", "drying"]
+		"wear": "Medium-High"
 	},
 	"wet": {
 		"name": "Full Wet",
-		"color": "🔵",
-		"dry_speed": 0.75,
+		"emoji": "🔵",
+		"dry_speed": 0.8,
 		"wet_speed": 1.0,
-		"wear_rate": 0.8,
-		"weather_suitability": ["heavy_rain", "storm"]
+		"wear": "Medium"
 	}
 }
 
-# Weather conditions
-var weather_conditions = {
-	"dry": {"name": "Dry", "icon": "☀️", "rain_intensity": 0.0},
-	"light_rain": {"name": "Light Rain", "icon": "🌦️", "rain_intensity": 0.3},
-	"heavy_rain": {"name": "Heavy Rain", "icon": "🌧️", "rain_intensity": 0.7},
-	"storm": {"name": "Storm", "icon": "⛈️", "rain_intensity": 1.0}
-}
+func _ready() -> void:
+	print("🏁 Race Preparation loaded")
 
-func _ready():
-	print("🏁 Race preparation scene loaded")
+	title_label.text = "🏁 Race Preparation"
 
-	# Store tire buttons for easy management
-	tire_buttons = [soft_tire, medium_tire, hard_tire, inter_tire, wet_tire]
-
-	# Connect tire buttons
-	soft_tire.pressed.connect(func(): _select_tire("soft"))
-	medium_tire.pressed.connect(func(): _select_tire("medium"))
-	hard_tire.pressed.connect(func(): _select_tire("hard"))
-	inter_tire.pressed.connect(func(): _select_tire("intermediate"))
-	wet_tire.pressed.connect(func(): _select_tire("wet"))
+	pilot1_card.pressed.connect(_on_pilot1_pressed)
+	pilot2_card.pressed.connect(_on_pilot2_pressed)
+	soft_button.pressed.connect(func() -> void: _select_tire_for_current_pilot("soft"))
+	medium_button.pressed.connect(func() -> void: _select_tire_for_current_pilot("medium"))
+	hard_button.pressed.connect(func() -> void: _select_tire_for_current_pilot("hard"))
+	inter_button.pressed.connect(func() -> void: _select_tire_for_current_pilot("intermediate"))
+	wet_button.pressed.connect(func() -> void: _select_tire_for_current_pilot("wet"))
 	ready_button.pressed.connect(_on_ready_pressed)
 
-	# Connect WebSocket signals (később használhatod valódi szerver update-ekre)
 	WebSocketManager.race_preparation_update.connect(_on_race_preparation_update)
 	WebSocketManager.qualifying_start.connect(_on_qualifying_start)
 	WebSocketManager.weather_update.connect(_on_weather_update)
 
-	# Load match data from previous scene
 	_load_match_data()
-
-	# Időjárás a SZERVER által küldött match_data-ból
-	_set_weather_from_match()
-
-	# Pilóták és ajánlott gumik betöltése
-	_load_pilot_info()
-
-func _load_match_data():
-	match_data = GameManager.get_current_match()
+	_load_pilots()
+	_auto_assign_default_tires()
 	_update_ui()
 
-func _set_weather_from_match():
-	# Szervertől kapott időjárás, fallback dry
-	current_weather = match_data.get("weather", "dry")
-	var weather_data = weather_conditions.get(current_weather, weather_conditions["dry"])
-	weather_info.text = weather_data.icon + " Weather: " + weather_data.name
-	print("🌤️ Race weather (from server): " + current_weather)
-
-func _load_pilot_info():
-	# Get pilot info from GameManager
-	user_pilots = GameManager.get_active_pilots()
-
-	if user_pilots.size() >= 2:
-		var pilot1 = user_pilots[0]
-		var pilot2 = user_pilots[1]
-
-		pilot1_info.text = "Pilot 1: " + str(pilot1.get("name", "Unknown")) + "\n" + str(pilot1.get("team", "")) + "\nSpeed: " + str(pilot1.get("total_speed", 0))
-		pilot2_info.text = "Pilot 2: " + str(pilot2.get("name", "Unknown")) + "\n" + str(pilot2.get("team", "")) + "\nSpeed: " + str(pilot2.get("total_speed", 0))
-
-		print("👨‍✈️ Loaded pilots: " + pilot1.get("name", "") + " & " + pilot2.get("name", ""))
-	else:
-		pilot1_info.text = "Pilot 1: Not found"
-		pilot2_info.text = "Pilot 2: Not found"
-		print("❌ Not enough active pilots found")
-
-	# Ajánlott gumik mindkét pilótának az aktuális időjárás alapján
-	_auto_select_recommended_tires()
-
-func _auto_select_recommended_tires():
-	var recommended_tire = ""
-
-	match current_weather:
-		"dry":
-			recommended_tire = "medium"  # Safe default for dry
-		"light_rain":
-			recommended_tire = "intermediate"
-		"heavy_rain", "storm":
-			recommended_tire = "wet"
-
-	# Set same tire for both pilots initially
-	pilot1_tire = recommended_tire
-	pilot2_tire = recommended_tire
-
-	# Start with pilot 1 selection
-	current_pilot_selection = 1
-	_update_tire_selection_ui()
-
-func _update_ui():
+func _load_match_data() -> void:
+	match_data = GameManager.get_current_match()
 	if match_data.is_empty():
 		return
 
-	# Update track info
-	var track = match_data.get("track", {})
-	track_info.text = "Track: " + str(track.get("name", "Unknown")) + " (" + str(track.get("laps", 0)) + " laps)"
+	var track: Dictionary = match_data.get("track", {})
+	var track_name: String = str(track.get("name", "Unknown"))
+	var laps: int = int(track.get("laps", 0))
+	track_label.text = "Track: %s (%d laps)" % [track_name, laps]
 
-	# Update opponent info
-	var opponent = match_data.get("opponent", {})
-	opponent_name.text = str(opponent.get("username", "Unknown Player"))
-	opponent_league.text = "League " + str(opponent.get("league", 1))
+	current_weather = str(match_data.get("weather", "dry"))
+	weather_label.text = "%s Weather: %s" % [GameManager.get_weather_emoji(current_weather), current_weather.capitalize()]
 
-func _update_tire_selection_ui():
-	# Update button states based on current pilot selection
-	var current_tire = pilot1_tire if current_pilot_selection == 1 else pilot2_tire
+	var opp: Dictionary = match_data.get("opponent", {})
+	var opp_name: String = str(opp.get("username", "Unknown"))
+	var opp_league: int = int(opp.get("league", 1))
 
-	# Clear all buttons
-	for button in tire_buttons:
-		button.button_pressed = false
+	opponent_name_label.text = opp_name
+	opponent_league_label.text = "League %d" % opp_league
+	opponent_status_label.text = "Preparing..."
 
-	# Set current tire button
-	match current_tire:
-		"soft":
-			soft_tire.button_pressed = true
-		"medium":
-			medium_tire.button_pressed = true
-		"hard":
-			hard_tire.button_pressed = true
-		"intermediate":
-			inter_tire.button_pressed = true
-		"wet":
-			wet_tire.button_pressed = true
+func _load_pilots() -> void:
+	user_pilots = GameManager.get_active_pilots()
+	if user_pilots.size() >= 1:
+		_set_pilot_card(user_pilots[0], pilot1_name_label, pilot1_team_label, pilot1_stats_label)
+	if user_pilots.size() >= 2:
+		_set_pilot_card(user_pilots[1], pilot2_name_label, pilot2_team_label, pilot2_stats_label)
 
-	# Update tire info
-	_update_tire_info(current_tire)
+func _set_pilot_card(pilot: Dictionary, name_label: Label, team_label: Label, stats_label: Label) -> void:
+	var name: String = str(pilot.get("name", "Pilot"))
+	var team: String = str(pilot.get("team", "Team"))
+	var pace: float = float(pilot.get("total_speed", 75.0))
+	var tire_mgmt: float = float(pilot.get("total_tire_management", 75.0))
+	var wet_skill: float = float(pilot.get("base_wet_skill", 75.0))
 
-	# Update status
-	var pilot_name = ""
-	if user_pilots.size() >= current_pilot_selection:
-		pilot_name = user_pilots[current_pilot_selection - 1].get("name", "Pilot " + str(current_pilot_selection))
+	name_label.text = name
+	team_label.text = team
+	stats_label.text = "Pace: %.0f  Tire: %.0f  Wet: %.0f" % [pace, tire_mgmt, wet_skill]
+
+func _auto_assign_default_tires() -> void:
+	var recommended: String = "medium"
+	if current_weather == "light_rain":
+		recommended = "intermediate"
+	elif current_weather == "heavy_rain" or current_weather == "storm":
+		recommended = "wet"
+
+	pilot_tires[0] = recommended
+	pilot_tires[1] = recommended
+
+	selected_pilot_index = 0
+	_update_pilot_highlight()
+	_update_tyre_title()
+	_update_pilot_tyre_labels()
+	_update_tyre_buttons_state()
+	_update_tyre_info(pilot_tires[selected_pilot_index])
+	_update_ready_state()
+
+func _update_ui() -> void:
+	time_label.text = "Time remaining: %02d:%02d" % [int(preparation_time) / 60, int(preparation_time) % 60]
+
+func _update_pilot_highlight() -> void:
+	pilot1_card.modulate = Color(0.85, 0.85, 0.9, 1)
+	pilot2_card.modulate = Color(0.85, 0.85, 0.9, 1)
+	if selected_pilot_index == 0:
+		pilot1_card.modulate = Color(1.0, 1.0, 1.0, 1)
 	else:
-		pilot_name = "Pilot " + str(current_pilot_selection)
+		pilot2_card.modulate = Color(1.0, 1.0, 1.0, 1)
 
-	status_label.text = "Selecting tire for " + pilot_name + " (Click tire then switch pilot)"
-
-	# Update ready button
-	_check_ready_status()
-
-func _select_tire(tire_type: String):
-	# Set tire for current pilot
-	if current_pilot_selection == 1:
-		pilot1_tire = tire_type
+func _update_pilot_tyre_labels() -> void:
+	var p1_t: String = str(pilot_tires[0])
+	var p2_t: String = str(pilot_tires[1])
+	if p1_t == "":
+		pilot1_tyre_label.text = "Tyre: -"
 	else:
-		pilot2_tire = tire_type
+		pilot1_tyre_label.text = "Tyre: %s %s" % [GameManager.get_tire_emoji(p1_t), p1_t.capitalize()]
 
-	print("🛞 " + tire_type + " selected for pilot " + str(current_pilot_selection))
+	if p2_t == "":
+		pilot2_tyre_label.text = "Tyre: -"
+	else:
+		pilot2_tyre_label.text = "Tyre: %s %s" % [GameManager.get_tire_emoji(p2_t), p2_t.capitalize()]
 
-	# Update UI
-	_update_tire_selection_ui()
+func _update_tyre_title() -> void:
+	var name: String = "-"
+	if selected_pilot_index == 0 and user_pilots.size() >= 1:
+		name = str(user_pilots[0].get("name", "Pilot 1"))
+	elif selected_pilot_index == 1 and user_pilots.size() >= 2:
+		name = str(user_pilots[1].get("name", "Pilot 2"))
+	tyre_title_label.text = "Starting tyre for: " + name
 
-	# Auto-switch to next pilot if first pilot is done
-	if current_pilot_selection == 1 and not pilot1_tire.is_empty():
-		current_pilot_selection = 2
-		_update_tire_selection_ui()
+func _update_tyre_buttons_state() -> void:
+	var compound: String = str(pilot_tires[selected_pilot_index])
 
-func _update_tire_info(tire_type: String):
-	if tire_type.is_empty():
-		tire_info.text = "Select tire compound for Pilot " + str(current_pilot_selection)
+	soft_button.button_pressed = (compound == "soft")
+	medium_button.button_pressed = (compound == "medium")
+	hard_button.button_pressed = (compound == "hard")
+	inter_button.button_pressed = (compound == "intermediate")
+	wet_button.button_pressed = (compound == "wet")
+
+func _update_tyre_info(compound: String) -> void:
+	if compound == "":
+		tyre_info_label.text = "Select a tyre to see details."
 		return
 
-	var tire_data = tire_compounds[tire_type]
-	var weather_data = weather_conditions[current_weather]
+	var data: Dictionary = tire_compounds.get(compound, {})
+	var name: String = str(data.get("name", compound.capitalize()))
+	var emoji: String = str(data.get("emoji", "⚫"))
+	var dry_speed: float = float(data.get("dry_speed", 1.0))
+	var wet_speed: float = float(data.get("wet_speed", 1.0))
+	var wear_text: String = str(data.get("wear", "Medium"))
 
-	tire_info.text = "Pilot " + str(current_pilot_selection) + ": " + tire_data.color + " " + tire_data.name + "\n\n"
-
-	# Show performance based on current weather
+	var text: String = "%s %s\n\n" % [emoji, name]
 	if current_weather == "dry":
-		var speed_percent = int(tire_data.dry_speed * 100)
-		tire_info.text += "☀️ Dry Performance: " + str(speed_percent) + "%\n"
+		text += "Dry performance: %.0f%%\n" % (dry_speed * 100.0)
+		text += "Wet performance: %.0f%%\n" % (wet_speed * 100.0)
 	else:
-		var speed_percent = int(tire_data.wet_speed * 100)
-		tire_info.text += "🌧️ Wet Performance: " + str(speed_percent) + "%\n"
+		text += "Wet performance: %.0f%%\n" % (wet_speed * 100.0)
+		text += "Dry performance: %.0f%%\n" % (dry_speed * 100.0)
 
-	tire_info.text += "Wear rate: " + str(int(tire_data.wear_rate * 100)) + "%\n\n"
+	text += "Wear: %s\n\n" % wear_text
 
-	# Show both pilots' tire selection
-	if not pilot1_tire.is_empty():
-		tire_info.text += "Pilot 1: " + tire_compounds[pilot1_tire].color + " " + tire_compounds[pilot1_tire].name + "\n"
-	if not pilot2_tire.is_empty():
-		tire_info.text += "Pilot 2: " + tire_compounds[pilot2_tire].color + " " + tire_compounds[pilot2_tire].name + "\n"
-
-func _check_ready_status():
-	var both_tires_selected = not pilot1_tire.is_empty() and not pilot2_tire.is_empty()
-	ready_button.disabled = not both_tires_selected
-
-	if both_tires_selected:
-		ready_button.text = "Ready!"
-		status_label.text = "✅ Both pilots have tires selected. Ready to start!"
+	if current_weather == "dry" and (compound == "intermediate" or compound == "wet"):
+		text += "⚠️ Wet tyres overheat and are very slow in dry conditions!"
+	elif current_weather != "dry" and (compound == "soft" or compound == "medium" or compound == "hard"):
+		text += "⚠️ Slick tyres are dangerous and very slow in wet conditions!"
 	else:
-		ready_button.text = "Select Tires"
+		text += "✅ Good choice for current weather."
 
-func _on_ready_pressed():
-	if pilot1_tire.is_empty() or pilot2_tire.is_empty():
-		status_label.text = "❌ Please select tires for both pilots"
+	tyre_info_label.text = text
+
+func _select_tire_for_current_pilot(compound: String) -> void:
+	pilot_tires[selected_pilot_index] = compound
+	_update_tyre_buttons_state()
+	_update_pilot_tyre_labels()
+	_update_tyre_info(compound)
+	_update_ready_state()
+
+func _on_pilot1_pressed() -> void:
+	selected_pilot_index = 0
+	_update_pilot_highlight()
+	_update_tyre_title()
+	_update_tyre_buttons_state()
+	_update_tyre_info(str(pilot_tires[selected_pilot_index]))
+
+func _on_pilot2_pressed() -> void:
+	selected_pilot_index = 1
+	_update_pilot_highlight()
+	_update_tyre_title()
+	_update_tyre_buttons_state()
+	_update_tyre_info(str(pilot_tires[selected_pilot_index]))
+
+func _update_ready_state() -> void:
+	var p1_ok: bool = (str(pilot_tires[0]) != "")
+	var p2_ok: bool = (str(pilot_tires[1]) != "")
+
+	if p1_ok and p2_ok:
+		ready_button.disabled = false
+		status_label.text = "✅ Both drivers have tyres selected. Ready to start!"
+	else:
+		ready_button.disabled = true
+		status_label.text = "Select tyres for both drivers."
+
+func _on_ready_pressed() -> void:
+	if ready_button.disabled:
 		return
 
 	is_ready = true
 	ready_button.disabled = true
-	ready_button.text = "✅ Ready!"
+	ready_button.text = "Ready!"
 	status_label.text = "✅ Ready! Waiting for opponent..."
-	opponent_status.text = "⏳ Waiting for opponent..."
+	opponent_status_label.text = "⏳ Waiting for opponent..."
 
-	# Itt később küldheted a szervernek a gumi­választást is (race_preparation event)
+	var prep_data := {
+		"matchId": match_data.get("matchId", match_data.get("id", "")),
+		"pilot1_tire": str(pilot_tires[0]),
+		"pilot2_tire": str(pilot_tires[1])
+	}
+	WebSocketManager.send_race_preparation(prep_data)
 
-	print("📤 Sending race preparation (local simulation for now)")
+func _on_race_preparation_update(data: Dictionary) -> void:
+	print("📊 Race preparation update: " + str(data))
 
-	# Jelenleg csak szimuláljuk, hogy az ellenfél is ready
-	var wait_time = randf_range(2.0, 5.0)
-	await get_tree().create_timer(wait_time).timeout
-	_simulate_both_ready()
-
-func _simulate_both_ready():
-	opponent_status.text = "✅ Ready!"
-	status_label.text = "✅ Both players ready! Starting qualifying automatically..."
-
-	# Automatically start qualifying after 2 seconds
-	await get_tree().create_timer(2.0).timeout
+func _on_qualifying_start(data: Dictionary) -> void:
+	print("🏁 Qualifying starting (server): " + str(data))
 	_start_qualifying()
 
-func _start_qualifying():
-	print("🏁 Starting qualifying simulation...")
+func _on_weather_update(data: Dictionary) -> void:
+	print("🌤️ Weather update: " + str(data))
+	current_weather = str(data.get("weather", current_weather))
+	weather_label.text = "%s Weather: %s" % [GameManager.get_weather_emoji(current_weather), current_weather.capitalize()]
+	_update_tyre_info(str(pilot_tires[selected_pilot_index]))
 
-	# Pass race data to qualifying scene, including server seed
-	var qualifying_data = {
+func _start_qualifying() -> void:
+	print("🏁 Starting qualifying (server-based)...")
+
+	var qualifying_data := {
 		"match_data": match_data,
 		"weather": current_weather,
-		"pilot1_tire": pilot1_tire,
-		"pilot2_tire": pilot2_tire,
+		"pilot1_tire": str(pilot_tires[0]),
+		"pilot2_tire": str(pilot_tires[1]),
 		"user_pilots": user_pilots,
 		"seed": match_data.get("seed", 0)
 	}
-
 	GameManager.set_qualifying_data(qualifying_data)
 
-	var qualifying_scene = preload("res://scenes/race/QualifyingScene.tscn")
+	var qualifying_scene: PackedScene = preload("res://scenes/race/QualifyingScene.tscn")
 	get_tree().change_scene_to_packed(qualifying_scene)
 
-func _on_race_preparation_update(data: Dictionary):
-	print("📊 Race preparation update: " + str(data))
-
-	var opponent_ready = data.get("opponent_ready", false)
-	if opponent_ready:
-		opponent_status.text = "✅ Ready!"
-		if is_ready:
-			status_label.text = "✅ Both players ready! Starting qualifying automatically..."
-			await get_tree().create_timer(2.0).timeout
-			_start_qualifying()
-	else:
-		var opponent_progress = data.get("opponent_progress", "Preparing...")
-		opponent_status.text = "⏳ " + str(opponent_progress)
-
-func _on_qualifying_start(data: Dictionary):
-	print("🏁 Qualifying starting: " + str(data))
-	_start_qualifying()
-
-func _on_weather_update(data: Dictionary):
-	print("🌤️ Weather update: " + str(data))
-
-	var new_weather = data.get("weather", current_weather)
-	if new_weather != current_weather:
-		current_weather = new_weather
-		var weather_data = weather_conditions.get(current_weather, weather_conditions["dry"])
-		weather_info.text = weather_data.icon + " Weather: " + weather_data.name
-		_update_tire_info(pilot1_tire if current_pilot_selection == 1 else pilot2_tire)
-
-func _process(delta):
-	if preparation_time > 0:
+func _process(delta: float) -> void:
+	if preparation_time > 0.0:
 		preparation_time -= delta
-		var minutes = int(preparation_time / 60)
-		var seconds = int(preparation_time) % 60
-		timer_label.text = "Time remaining: %02d:%02d" % [minutes, seconds]
+		if preparation_time < 0.0:
+			preparation_time = 0.0
 
-		if preparation_time <= 0:
-			timer_label.text = "⏰ Time's up!"
+		time_label.text = "Time remaining: %02d:%02d" % [int(preparation_time) / 60, int(preparation_time) % 60]
+
+		if preparation_time <= 0.0:
 			_auto_ready()
 
-func _auto_ready():
-	if not is_ready:
-		if pilot1_tire.is_empty() or pilot2_tire.is_empty():
-			_auto_select_recommended_tires()
+func _auto_ready() -> void:
+	if is_ready:
+		return
 
-		_on_ready_pressed()
-		status_label.text = "⏰ Auto-ready! Time expired."
+	for i in range(2):
+		if str(pilot_tires[i]) == "":
+			var recommended: String = "medium"
+			if current_weather == "light_rain":
+				recommended = "intermediate"
+			elif current_weather == "heavy_rain" or current_weather == "storm":
+				recommended = "wet"
+			pilot_tires[i] = recommended
 
-func _input(event):
-	if event.is_action_pressed("ui_focus_next"):
-		if current_pilot_selection == 1:
-			current_pilot_selection = 2
-		else:
-			current_pilot_selection = 1
-		_update_tire_selection_ui()
+	_update_pilot_tyre_labels()
+	_update_tyre_buttons_state()
+	_update_tyre_info(str(pilot_tires[selected_pilot_index]))
+	_update_ready_state()
+	_on_ready_pressed()
 
-func _exit_tree():
-	# Clean up if needed
-	pass
+func _exit_tree() -> void:
+	if WebSocketManager.race_preparation_update.is_connected(_on_race_preparation_update):
+		WebSocketManager.race_preparation_update.disconnect(_on_race_preparation_update)
+	if WebSocketManager.qualifying_start.is_connected(_on_qualifying_start):
+		WebSocketManager.qualifying_start.disconnect(_on_qualifying_start)
+	if WebSocketManager.weather_update.is_connected(_on_weather_update):
+		WebSocketManager.weather_update.disconnect(_on_weather_update)

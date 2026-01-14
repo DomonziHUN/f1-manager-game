@@ -25,4 +25,4 @@ func set_data(pos: int, driver_name: String, team_name: String, tyre_str: String
 		self.modulate = Color(0.8, 1.0, 0.8, 1)
 	elif is_opponent:
 		# Ellenfél: enyhe narancsos háttér
-		self.modulate = Color(1.0, 0.9, 0.8, 1) 
+		self.modulate = Color(1.0, 0.9, 0.8, 1)

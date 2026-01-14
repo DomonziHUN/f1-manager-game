@@ -1,9 +1,11 @@
 // backend/race-engine/QualifyingEngine.js
 
+const { computeQualiTireModifier } = require('./TireModel');
+
 /**
- * Szerver oldali kvalifikációs szimulátor.
+ * Szerver oldali kvalifikációs szimulátor gumimodellel.
  *
- * VÁRT BEMENET:
+ * Bemenet:
  * {
  *   track: { id, name, laps },
  *   weather: "dry" | "light_rain" | "heavy_rain" | "storm",
@@ -25,7 +27,8 @@
  *           }
  *         },
  *         ...
- *       ]
+ *       ],
+ *       selectedTires: { "1": "soft", "2": "medium" } // opcionális
  *     },
  *     ...
  *   ]
@@ -38,8 +41,8 @@ class QualifyingEngine {
         this.weather = config.weather || 'dry';
         this.players = config.players || [];
 
-        this.drivers = [];       // { name, team, owner, userId, pilotSlot, type, performance, lapTimeSeconds }
-        this.gridPositions = []; // végső grid
+        this.drivers = [];       // { name, team, owner, userId, pilotSlot, type, performance, lapTimeSeconds, compound }
+        this.gridPositions = [];
     }
 
     run() {
@@ -47,36 +50,41 @@ class QualifyingEngine {
         this.computeLapTimes();
         this.sortByLapTime();
         this.buildGrid();
-        return {
-            grid: this.gridPositions
-        };
+        return { grid: this.gridPositions };
     }
 
-    // Összerakjuk a mezőnyt a játékosok + AI pilótákból
+    // ==============================
+    // DRIVER LISTA ÖSSZEÁLLÍTÁSA
+    // ==============================
     buildDrivers() {
         const drivers = [];
 
-        // Játékosok pilótái
+        // Játékos pilóták
         this.players.forEach((player, index) => {
             const ownerTag = index === 0 ? 'player1' : 'player2';
+            const tireMap = player.selectedTires || {}; // { "1": "soft", "2": "medium" }
 
             for (const pilot of player.pilots) {
-                const perf = this.calculatePerformance(pilot.stats);
+                const slot = pilot.slot || 1;
+                const compound = (tireMap[String(slot)] || 'medium').toLowerCase();
+
+                const perf = this.calculatePerformance(pilot.stats, compound);
 
                 drivers.push({
                     name: pilot.name,
                     team: pilot.team || 'Player Team',
-                    owner: ownerTag,            // 'player1' | 'player2'
+                    owner: ownerTag,
                     userId: player.userId,
-                    pilotSlot: pilot.slot || 1,
+                    pilotSlot: slot,
                     type: 'player',
+                    compound,
                     performance: perf,
                     lapTimeSeconds: 0
                 });
             }
         });
 
-        // 16 AI pilóta
+        // AI mezőny – mindig a legjobb kvali gumi az időjáráshoz mérten
         const aiNames = [
             'Max Verstappen', 'Lewis Hamilton', 'Charles Leclerc', 'Lando Norris',
             'Carlos Sainz', 'George Russell', 'Sergio Perez', 'Fernando Alonso',
@@ -84,8 +92,17 @@ class QualifyingEngine {
             'Alex Albon', 'Valtteri Bottas', 'Zhou Guanyu', 'Kevin Magnussen'
         ];
 
+        const aiCompound = this._bestQualiCompoundForWeather();
+
         for (let i = 0; i < aiNames.length; i++) {
-            const base = 60 + Math.random() * 35; // 60–95 közötti „performance”
+            const base = 60 + Math.random() * 35; // 60–95
+
+            const perf = this.calculatePerformance({
+                speed: base,
+                cornering: base,
+                consistency: base,
+                wetSkill: 75
+            }, aiCompound);
 
             drivers.push({
                 name: aiNames[i],
@@ -94,7 +111,8 @@ class QualifyingEngine {
                 userId: null,
                 pilotSlot: null,
                 type: 'ai',
-                performance: base,
+                compound: aiCompound,
+                performance: perf,
                 lapTimeSeconds: 0
             });
         }
@@ -102,8 +120,24 @@ class QualifyingEngine {
         this.drivers = drivers;
     }
 
-    // Pilóta stat → teljesítmény (nagyobb = jobb)
-    calculatePerformance(stats = {}) {
+    /**
+     * AI kvali gumi választása:
+     * - dry  → soft
+     * - light_rain → intermediate
+     * - heavy_rain / storm → wet
+     */
+    _bestQualiCompoundForWeather() {
+        const w = this.weather;
+        if (w === 'dry') return 'soft';
+        if (w === 'light_rain') return 'intermediate';
+        if (w === 'heavy_rain' || w === 'storm') return 'wet';
+        return 'medium';
+    }
+
+    // ==============================
+    // TELJESÍTMÉNY + IDŐ SZÁMOLÁS
+    // ==============================
+    calculatePerformance(stats = {}, compound = 'medium') {
         const speed = stats.speed ?? 75;
         const cornering = stats.cornering ?? 75;
         const consistency = stats.consistency ?? 75;
@@ -111,43 +145,38 @@ class QualifyingEngine {
 
         let pilotPerf = (speed + cornering + consistency) / 3;
 
-        // Időjárás hatás
+        const tireMod = computeQualiTireModifier(compound, this.weather);
+
         let weatherMod = 1.0;
         if (this.weather !== 'dry') {
             weatherMod = wetSkill / 100.0;
         }
 
-        // Kis random ingadozás (±5%)
         const randomFactor = 0.95 + Math.random() * 0.10;
 
-        return pilotPerf * weatherMod * randomFactor;
+        return pilotPerf * tireMod * weatherMod * randomFactor;
     }
 
-    // Performance → köridő (mp). Nagyobb performance → kisebb idő.
     computeLapTimes() {
-        const baseTime = 104.0; // alap köridő mp-ben (kb. 1:44.000)
+        const baseTime = 104.0; // ~1:44.000
 
         for (const driver of this.drivers) {
             const perf = driver.performance;
 
-            // 60–100 közötti performance → kb. 0–5 mp eltérés
-            const perfClamped = Math.max(60, Math.min(100, perf));
-            const timeModifier = ((100 - perfClamped) / 100) * 5.0;
+            const perfClamped = Math.max(40, Math.min(100, perf));
+            const timeModifier = ((100 - perfClamped) / 100) * 8.0; // MAX ~8 mp különbség
 
-            // Kis random zaj ±0.25 mp, de továbbra is erős perf‑függés
-            const jitter = (Math.random() * 0.5) - 0.25;
+            const jitter = (Math.random() * 0.6) - 0.3; // ±0.3 mp
 
             const finalTime = baseTime + timeModifier + jitter;
             driver.lapTimeSeconds = Math.max(0, finalTime);
         }
     }
 
-    // Rendezés tisztán köridő szerint – P1 = leggyorsabb
     sortByLapTime() {
         this.drivers.sort((a, b) => a.lapTimeSeconds - b.lapTimeSeconds);
     }
 
-    // Grid felépítése a rendezett mezőnyből
     buildGrid() {
         const grid = [];
 
@@ -158,18 +187,19 @@ class QualifyingEngine {
 
             const minutes = Math.floor(t / 60);
             const seconds = t - minutes * 60;
-            // pl. 1:44.321
             const lapTimeStr = `${minutes}:${seconds.toFixed(3).padStart(6, '0')}`;
 
             grid.push({
                 position,
                 name: d.name,
                 team: d.team,
-                owner: d.owner,          // 'player1' | 'player2' | 'ai'
+                owner: d.owner,
                 userId: d.userId,
                 pilotSlot: d.pilotSlot,
                 type: d.type,
+                compound: d.compound,
                 lapTime: lapTimeStr,
+                lapSeconds: t,           // <<< EZ KELL A KLIENS ANIMÁCIÓHOZ
                 performance: d.performance
             });
         }

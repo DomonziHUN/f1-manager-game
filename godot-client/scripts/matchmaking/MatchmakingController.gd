@@ -15,42 +15,34 @@ extends Control
 @onready var match_found_panel = $CenterContainer/MainPanel/VBoxContainer/MatchFoundPanel
 @onready var opponent_label = $CenterContainer/MainPanel/VBoxContainer/MatchFoundPanel/MatchFoundContent/OpponentLabel
 @onready var track_label = $CenterContainer/MainPanel/VBoxContainer/MatchFoundPanel/MatchFoundContent/TrackLabel
-@onready var start_race_button = $CenterContainer/MainPanel/VBoxContainer/MatchFoundPanel/MatchFoundContent/StartRaceButton
 
-# State
 enum MatchmakingState { READY, CONNECTING, SEARCHING, IN_QUEUE, MATCH_FOUND }
 var current_state: MatchmakingState = MatchmakingState.READY
 var queue_timer: float = 0.0
 
-# Match data
 var match_data: Dictionary = {}
 
 func _ready():
 	print("🎮 Matchmaking scene loaded")
-	
-	# Connect buttons
+
 	cancel_button.pressed.connect(_on_cancel_pressed)
 	find_match_button.pressed.connect(_on_find_match_pressed)
-	# start_race_button connection removed intentionally
-	
-	# Connect WebSocket signals
+
 	WebSocketManager.connected.connect(_on_websocket_connected)
 	WebSocketManager.disconnected.connect(_on_websocket_disconnected)
 	WebSocketManager.authenticated.connect(_on_websocket_authenticated)
 	WebSocketManager.auth_error.connect(_on_websocket_auth_error)
-	
+
 	WebSocketManager.queue_joined.connect(_on_queue_joined)
 	WebSocketManager.queue_left.connect(_on_queue_left)
 	WebSocketManager.queue_error.connect(_on_queue_error)
 	WebSocketManager.queue_update.connect(_on_queue_update)
 	WebSocketManager.match_found.connect(_on_match_found)
-	
-	# Initialize WebSocket connection
+
 	_initialize_websocket()
 
 func _initialize_websocket():
 	_set_state(MatchmakingState.CONNECTING)
-	
 	if not WebSocketManager.is_connected:
 		WebSocketManager.connect_to_server()
 	else:
@@ -61,12 +53,10 @@ func _authenticate_websocket():
 		status_label.text = "❌ No auth token available"
 		_set_state(MatchmakingState.READY)
 		return
-	
 	WebSocketManager.authenticate(NetworkManager.auth_token)
 
 func _set_state(new_state: MatchmakingState):
 	current_state = new_state
-	
 	match current_state:
 		MatchmakingState.READY:
 			status_label.text = "Ready to find a match"
@@ -77,7 +67,7 @@ func _set_state(new_state: MatchmakingState):
 			cancel_button.text = "← Back to Dashboard"
 			cancel_button.disabled = false
 			match_found_panel.visible = false
-		
+
 		MatchmakingState.CONNECTING:
 			status_label.text = "Connecting to matchmaking server..."
 			loading_spinner.visible = true
@@ -86,7 +76,7 @@ func _set_state(new_state: MatchmakingState):
 			find_match_button.disabled = true
 			cancel_button.text = "← Back to Dashboard"
 			cancel_button.disabled = false
-		
+
 		MatchmakingState.SEARCHING:
 			status_label.text = "Joining matchmaking queue..."
 			loading_spinner.visible = true
@@ -95,7 +85,7 @@ func _set_state(new_state: MatchmakingState):
 			find_match_button.disabled = true
 			cancel_button.text = "Cancel"
 			cancel_button.disabled = false
-		
+
 		MatchmakingState.IN_QUEUE:
 			status_label.text = "Searching for opponents..."
 			loading_spinner.visible = true
@@ -104,7 +94,7 @@ func _set_state(new_state: MatchmakingState):
 			find_match_button.disabled = true
 			cancel_button.text = "Leave Queue"
 			cancel_button.disabled = false
-		
+
 		MatchmakingState.MATCH_FOUND:
 			status_label.text = "Match found!"
 			loading_spinner.visible = false
@@ -113,7 +103,6 @@ func _set_state(new_state: MatchmakingState):
 			cancel_button.disabled = true
 			match_found_panel.visible = true
 
-# WebSocket Event Handlers
 func _on_websocket_connected():
 	print("✅ WebSocket connected, authenticating...")
 	_authenticate_websocket()
@@ -126,8 +115,6 @@ func _on_websocket_disconnected():
 func _on_websocket_authenticated(user_data: Dictionary):
 	print("✅ WebSocket authenticated")
 	_set_state(MatchmakingState.READY)
-	
-	# Update league info
 	var user = user_data.get("user", {})
 	league_label.text = "League: " + str(user.get("league", 1))
 
@@ -140,8 +127,6 @@ func _on_queue_joined(data: Dictionary):
 	print("✅ Joined queue: " + str(data))
 	_set_state(MatchmakingState.IN_QUEUE)
 	queue_timer = 0.0
-	
-	# Update queue info
 	players_label.text = "Players in queue: " + str(data.get("playersInQueue", 0))
 	time_label.text = "Estimated wait: " + str(data.get("estimatedWaitTime", "Unknown"))
 
@@ -163,7 +148,6 @@ func _on_match_found(data: Dictionary):
 	match_data = data
 	_show_match_found(data)
 
-# Button Event Handlers
 func _on_find_match_pressed():
 	print("🔍 Starting matchmaking...")
 	_set_state(MatchmakingState.SEARCHING)
@@ -173,7 +157,6 @@ func _on_cancel_pressed():
 	match current_state:
 		MatchmakingState.READY, MatchmakingState.CONNECTING:
 			_go_back_to_dashboard()
-		
 		MatchmakingState.SEARCHING, MatchmakingState.IN_QUEUE:
 			print("🚪 Leaving queue...")
 			WebSocketManager.leave_queue()
@@ -181,25 +164,21 @@ func _on_cancel_pressed():
 func _show_match_found(data: Dictionary):
 	var opponent = data.get("opponent", {})
 	var track = data.get("track", {})
-	
 	opponent_label.text = "Opponent: " + str(opponent.get("username", "Unknown Player"))
 	track_label.text = "Track: " + str(track.get("name", "Unknown")) + " (" + str(track.get("laps", 0)) + " laps)"
-	
+
 	_set_state(MatchmakingState.MATCH_FOUND)
-	
-	# Store match data immediately
+
+	# Teljes match payload mentése (matchId, weather, seed, track, opponent, stb.)
 	GameManager.set_current_match(data)
-	
-	# Show match found for 3 seconds, then automatically go to race preparation
+
 	status_label.text = "🎉 Match found! Starting race preparation..."
-	
+
 	await get_tree().create_timer(3.0).timeout
 	_go_to_race_preparation()
 
 func _go_to_race_preparation():
-	print("🏁 Going to race preparation automatically...")
-	
-	# Go directly to race preparation
+	print("🏁 Going to race preparation...")
 	var race_prep_scene = preload("res://scenes/race/RacePreparationScene.tscn")
 	get_tree().change_scene_to_packed(race_prep_scene)
 
@@ -211,17 +190,12 @@ func _go_back_to_dashboard():
 func _process(delta):
 	if current_state == MatchmakingState.IN_QUEUE:
 		queue_timer += delta
-		
-		# Update progress bar (fake progress for visual effect)
 		var progress = fmod(queue_timer * 0.3, 1.0)
 		progress_bar.value = progress * 100
-		
-		# Update time label
 		var minutes = int(queue_timer / 60)
 		var seconds = int(queue_timer) % 60
 		time_label.text = "Time in queue: %02d:%02d" % [minutes, seconds]
 
 func _exit_tree():
-	# Clean up WebSocket connection when leaving scene
 	if WebSocketManager.is_connected:
 		WebSocketManager.leave_queue()

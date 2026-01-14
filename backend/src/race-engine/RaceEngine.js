@@ -1,69 +1,64 @@
 // backend/race-engine/RaceEngine.js
+
+const TireModel = require('./TireModel');
+
 class RaceEngine {
     constructor(config) {
         this.raceId = config.raceId;
-        this.track = config.track; // { id, name, laps }
+        this.track = config.track; // { id, name, laps, tire_wear_factor? }
         this.totalLaps = config.track.laps;
         this.currentTick = 0;
         this.tickRate = 20; // 20 ticks per second
+        this.weather = config.weather || 'dry';
 
         this.cars = new Map();
         this.events = [];
         this.finished = false;
         this.finishedCars = [];
 
-        // Initialize player cars (2 játékos)
-        this.initializePlayerCars(config.players);
-
-        // Initialize AI cars (többi mező)
+        this.initializePlayerCars(config.players || []);
         this.initializeAICars();
-
-        // Set starting grid
         this.setStartingGrid();
     }
 
     initializePlayerCars(players) {
-        // players: [{ userId, username, pilots[], carStats }]
         players.forEach((player, playerIndex) => {
             const ownerTag = playerIndex === 0 ? 'player1' : 'player2';
+            const tireMap = player.selectedTires || {}; // { "1": "soft", "2": "medium" }
 
             for (const pilot of player.pilots) {
-                const carId = `${ownerTag}_car${pilot.slot}`;
+                const slot = pilot.slot || 1;
+                const carId = `${ownerTag}_car${slot}`;
+                const compound = (tireMap[String(slot)] || 'medium').toLowerCase();
 
                 this.cars.set(carId, {
                     id: carId,
-                    owner: ownerTag,          // 'player1' | 'player2'
-                    userId: player.userId,    // fontos: ehhez kötjük a DB műveleteket
+                    owner: ownerTag,
+                    userId: player.userId,
                     pilot: pilot,
                     carStats: player.carStats,
 
-                    // Pozíció
                     trackPosition: 0,
                     currentLap: 0,
                     racePosition: 0,
                     totalDistance: 0,
 
-                    // Gumi
                     tire: {
-                        compound: 'medium',
-                        wear: 100,
-                        degradationRate: this.calculateTireDegradation(pilot, player.carStats, 'medium')
+                        compound,
+                        wear: 100
                     },
 
-                    // ERS
                     ers: {
                         charge: 100,
                         mode: 'balanced'
                     },
 
-                    // Állapot
                     isInPit: false,
                     pitProgress: 0,
                     pitCount: 0,
                     finished: false,
                     dnf: false,
 
-                    // Sebesség
                     currentSpeed: 0,
                     baseSpeed: this.calculateBaseSpeed(pilot, player.carStats)
                 });
@@ -83,6 +78,8 @@ class RaceEngine {
             { name: 'AI Team 8', color: '#800080', speedMod: 0.75 }
         ];
 
+        const aiCompound = this._bestRaceCompoundForWeather();
+
         let aiIndex = 0;
         for (const team of aiTeams) {
             for (let i = 0; i < 2; i++) {
@@ -101,7 +98,8 @@ class RaceEngine {
                             cornering: 70 + Math.random() * 20,
                             overtaking: 70 + Math.random() * 20,
                             consistency: 70 + Math.random() * 20,
-                            tireManagement: 70 + Math.random() * 20
+                            tireManagement: 70 + Math.random() * 20,
+                            wetSkill: 75
                         }
                     },
                     carStats: {
@@ -109,7 +107,8 @@ class RaceEngine {
                         acceleration: 50 + Math.random() * 30,
                         downforce: 50,
                         tireWearReduction: Math.random() * 10,
-                        ersEfficiency: 50
+                        ersEfficiency: 50,
+                        pitStopBonus: 0
                     },
 
                     trackPosition: 0,
@@ -118,9 +117,8 @@ class RaceEngine {
                     totalDistance: 0,
 
                     tire: {
-                        compound: ['soft', 'medium', 'hard'][Math.floor(Math.random() * 3)],
-                        wear: 100,
-                        degradationRate: 0.8 + Math.random() * 0.4
+                        compound: aiCompound,
+                        wear: 100
                     },
 
                     ers: {
@@ -143,15 +141,24 @@ class RaceEngine {
         }
     }
 
-    calculateBaseSpeed(pilot, carStats) {
-        return (pilot.stats.speed + carStats.speed) / 2;
+    /**
+     * AI verseny induló gumi:
+     * - dry  → medium
+     * - light_rain → intermediate
+     * - heavy_rain / storm → wet
+     */
+    _bestRaceCompoundForWeather() {
+        const w = this.weather;
+        if (w === 'dry') return 'medium';
+        if (w === 'light_rain') return 'intermediate';
+        if (w === 'heavy_rain' || w === 'storm') return 'wet';
+        return 'medium';
     }
 
-    calculateTireDegradation(pilot, carStats, compound) {
-        const baseDeg = { soft: 1.5, medium: 1.0, hard: 0.6 };
-        const skillMod = 1 - (pilot.stats.tireManagement / 200);
-        const partMod = 1 - (carStats.tireWearReduction / 100);
-        return baseDeg[compound] * skillMod * partMod;
+    calculateBaseSpeed(pilot, carStats) {
+        const s = pilot.stats.speed ?? 80;
+        const car = carStats.speed ?? 50;
+        return (s + car) / 2;
     }
 
     setStartingGrid() {
@@ -186,11 +193,16 @@ class RaceEngine {
     }
 
     processOnTrack(car) {
-        const tireModifier = this.getTireModifier(car);
+        const grip = TireModel.computeGripModifier(
+            car.tire.compound,
+            car.tire.wear,
+            this.weather
+        );
+
         const ersModifier = this.getERSModifier(car);
         const consistencyVariation = this.getConsistencyVariation(car);
 
-        car.currentSpeed = car.baseSpeed * tireModifier * ersModifier + consistencyVariation;
+        car.currentSpeed = car.baseSpeed * grip * ersModifier + consistencyVariation;
 
         const distancePerTick = car.currentSpeed / (this.tickRate * 5000);
         car.trackPosition += distancePerTick;
@@ -205,6 +217,30 @@ class RaceEngine {
                 lap: car.currentLap
             });
 
+            const tireMgmt = car.pilot.stats?.tireManagement ?? 75;
+            const wearRed = car.carStats?.tireWearReduction ?? 0;
+            const trackFactor = this.track.tire_wear_factor ?? 1.0;
+
+            car.tire.wear = TireModel.computeWearAfterLaps(
+                car.tire.compound,
+                car.tire.wear,
+                {
+                    driverTireMgmt: tireMgmt,
+                    carTireWearReduction: wearRed,
+                    trackTireFactor: trackFactor,
+                    weather: this.weather,
+                    laps: 1
+                }
+            );
+
+            if (car.tire.wear < 15 && car.tire.wear > 10) {
+                this.events.push({
+                    type: 'TIRE_CRITICAL',
+                    carId: car.id,
+                    wear: car.tire.wear
+                });
+            }
+
             if (car.currentLap >= this.totalLaps) {
                 car.finished = true;
                 this.finishedCars.push(car.id);
@@ -218,25 +254,7 @@ class RaceEngine {
 
         car.totalDistance = car.currentLap + car.trackPosition;
 
-        car.tire.wear -= car.tire.degradationRate / this.tickRate;
-        if (car.tire.wear < 0) car.tire.wear = 0;
-
-        if (car.tire.wear < 15 && car.tire.wear > 14) {
-            this.events.push({
-                type: 'TIRE_CRITICAL',
-                carId: car.id,
-                wear: car.tire.wear
-            });
-        }
-
         this.processERS(car);
-    }
-
-    getTireModifier(car) {
-        const wear = car.tire.wear;
-        if (wear > 50) return 1.0;
-        if (wear > 20) return 0.85 + (wear - 20) * 0.005;
-        return 0.6 + wear * 0.0125;
     }
 
     getERSModifier(car) {
@@ -287,11 +305,6 @@ class RaceEngine {
             car.pitProgress = 0;
             car.pitCount++;
             car.tire.wear = 100;
-            car.tire.degradationRate = this.calculateTireDegradation(
-                car.pilot,
-                car.carStats || {},
-                car.tire.compound
-            );
 
             this.events.push({
                 type: 'PIT_EXIT',
@@ -368,7 +381,9 @@ class RaceEngine {
         switch (command.type) {
             case 'PIT':
                 if (!car.isInPit && this.isInPitZone(car)) {
-                    car.tire.compound = command.compound || 'medium';
+                    if (command.compound) {
+                        car.tire.compound = String(command.compound).toLowerCase();
+                    }
                     this.enterPit(car);
                 }
                 break;
@@ -383,9 +398,7 @@ class RaceEngine {
 
     checkRaceEnd() {
         const activeCars = Array.from(this.cars.values()).filter(c => !c.finished && !c.dnf);
-        if (activeCars.length === 0) {
-            this.finished = true;
-        }
+        if (activeCars.length === 0) this.finished = true;
     }
 
     isFinished() {
@@ -400,7 +413,7 @@ class RaceEngine {
             .map((car, index) => ({
                 position: index + 1,
                 carId: car.id,
-                owner: car.owner,        // 'player1' | 'player2' | 'ai'
+                owner: car.owner,
                 userId: car.userId || null,
                 pilotName: car.pilot.name,
                 points: F1Points[index] || 0,

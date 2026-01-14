@@ -3,43 +3,173 @@
 [ext_resource type="Script" path="res://scripts/race/QualifyingController.gd" id="1_qualifying"]
 
 [node name="QualifyingScene" type="Control"]
-layout_mode = 3
-anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 script = ExtResource("1_qualifying")
 
 [node name="Background" type="ColorRect" parent="."]
-layout_mode = 1
-anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-color = Color(0.1, 0.1, 0.15, 1)
+color = Color(0.07, 0.07, 0.11, 1)
 
-[node name="CenterContainer" type="CenterContainer" parent="."]
-layout_mode = 1
-anchors_preset = 15
+[node name="Header" type="HBoxContainer" parent="."]
+anchor_right = 1.0
+anchor_bottom = 0.12
+custom_minimum_size = Vector2(0, 80)
+theme_override_constants/separation = 40
+
+[node name="Left" type="VBoxContainer" parent="Header"]
+size_flags_horizontal = 3
+theme_override_constants/separation = 4
+
+[node name="SessionLabel" type="Label" parent="Header/Left"]
+text = "ONE SHOT QUALIFYING"
+horizontal_alignment = 0
+theme_override_font_sizes/font_size = 18
+
+[node name="TrackLabel" type="Label" parent="Header/Left"]
+text = "Track: N/A"
+horizontal_alignment = 0
+theme_override_font_sizes/font_size = 14
+modulate = Color(0.8, 0.8, 0.9, 1)
+
+[node name="Center" type="VBoxContainer" parent="Header"]
+size_flags_horizontal = 3
+theme_override_constants/separation = 4
+alignment = 1
+
+[node name="StatusLabel" type="Label" parent="Header/Center"]
+text = "Requesting qualifying results..."
+horizontal_alignment = 1
+theme_override_font_sizes/font_size = 16
+
+[node name="HeaderProgressBar" type="ProgressBar" parent="Header/Center"]
+custom_minimum_size = Vector2(400, 16)
+value = 0.0
+
+[node name="Right" type="VBoxContainer" parent="Header"]
+size_flags_horizontal = 3
+alignment = 2
+theme_override_constants/separation = 4
+
+[node name="WeatherLabel" type="Label" parent="Header/Right"]
+text = "☀️ Dry"
+horizontal_alignment = 2
+theme_override_font_sizes/font_size = 16
+
+[node name="WeatherDetailLabel" type="Label" parent="Header/Right"]
+text = "Air: 24°C  Track: 32°C"
+horizontal_alignment = 2
+theme_override_font_sizes/font_size = 12
+modulate = Color(0.8, 0.8, 0.9, 1)
+
+[node name="Main" type="HSplitContainer" parent="."]
+anchor_top = 0.12
+anchor_right = 1.0
+anchor_bottom = 0.82
+theme_override_constants/separation = 16
+
+[node name="LeftPanel" type="PanelContainer" parent="Main"]
+size_flags_horizontal = 3
+theme_override_styles/panel = null
+
+[node name="TrackContainer" type="Node2D" parent="Main/LeftPanel"]
+position = Vector2(640, 270)
+
+[node name="RightPanel" type="PanelContainer" parent="Main"]
+size_flags_horizontal = 4
+theme_override_styles/panel = null
+
+[node name="ResultsVBox" type="VBoxContainer" parent="Main/RightPanel"]
 anchor_right = 1.0
 anchor_bottom = 1.0
+theme_override_constants/separation = 4
 
-[node name="VBoxContainer" type="VBoxContainer" parent="CenterContainer"]
-layout_mode = 2
+[node name="TableHeader" type="HBoxContainer" parent="Main/RightPanel/ResultsVBox"]
+theme_override_constants/separation = 8
 
-[node name="Title" type="Label" parent="CenterContainer/VBoxContainer"]
-layout_mode = 2
-text = "🏁 Qualifying Session"
+[node name="PosHeader" type="Label" parent="Main/RightPanel/ResultsVBox/TableHeader"]
+text = "POS"
+custom_minimum_size = Vector2(40, 0)
+horizontal_alignment = 2
+theme_override_font_sizes/font_size = 12
+modulate = Color(0.7, 0.8, 1, 1)
+
+[node name="DriverHeader" type="Label" parent="Main/RightPanel/ResultsVBox/TableHeader"]
+text = "DRIVER"
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 12
+modulate = Color(0.7, 0.8, 1, 1)
+
+[node name="TeamHeader" type="Label" parent="Main/RightPanel/ResultsVBox/TableHeader"]
+text = "TEAM"
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 12
+modulate = Color(0.7, 0.8, 1, 1)
+
+[node name="TyreHeader" type="Label" parent="Main/RightPanel/ResultsVBox/TableHeader"]
+text = "TYRE"
+custom_minimum_size = Vector2(70, 0)
 horizontal_alignment = 1
+theme_override_font_sizes/font_size = 12
+modulate = Color(0.7, 0.8, 1, 1)
 
-[node name="StatusLabel" type="Label" parent="CenterContainer/VBoxContainer"]
-layout_mode = 2
-text = "Simulating qualifying..."
+[node name="TimeHeader" type="Label" parent="Main/RightPanel/ResultsVBox/TableHeader"]
+text = "TIME"
+custom_minimum_size = Vector2(110, 0)
+horizontal_alignment = 2
+theme_override_font_sizes/font_size = 12
+modulate = Color(0.7, 0.8, 1, 1)
+
+[node name="GapHeader" type="Label" parent="Main/RightPanel/ResultsVBox/TableHeader"]
+text = "GAP"
+custom_minimum_size = Vector2(80, 0)
+horizontal_alignment = 2
+theme_override_font_sizes/font_size = 12
+modulate = Color(0.7, 0.8, 1, 1)
+
+[node name="RowsContainer" type="VBoxContainer" parent="Main/RightPanel/ResultsVBox"]
+theme_override_constants/separation = 2
+
+[node name="Footer" type="HBoxContainer" parent="."]
+anchor_top = 0.82
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_constants/separation = 40
+
+[node name="YourPanel" type="VBoxContainer" parent="Footer"]
+size_flags_horizontal = 3
+theme_override_constants/separation = 4
+
+[node name="YourTitle" type="Label" parent="Footer/YourPanel"]
+text = "YOUR QUALIFYING"
+theme_override_font_sizes/font_size = 14
+
+[node name="YourSummary" type="Label" parent="Footer/YourPanel"]
+text = "Pilot 1: -\nPilot 2: -"
+autowrap_mode = 2
+theme_override_font_sizes/font_size = 12
+
+[node name="VsLabel" type="Label" parent="Footer"]
+text = "VS"
+size_flags_horizontal = 1
 horizontal_alignment = 1
+theme_override_font_sizes/font_size = 24
 
-[node name="ProgressBar" type="ProgressBar" parent="CenterContainer/VBoxContainer"]
-layout_mode = 2
-custom_minimum_size = Vector2(400, 20)
+[node name="OpponentPanel" type="VBoxContainer" parent="Footer"]
+size_flags_horizontal = 3
+alignment = 0
+theme_override_constants/separation = 4
 
-[node name="ResultsLabel" type="Label" parent="CenterContainer/VBoxContainer"]
-layout_mode = 2
-text = "Results will appear here..."
-horizontal_alignment = 1 
+[node name="OppTitle" type="Label" parent="Footer/OpponentPanel"]
+text = "OPPONENT QUALIFYING"
+theme_override_font_sizes/font_size = 14
+
+[node name="OppSummary" type="Label" parent="Footer/OpponentPanel"]
+text = "Pilot 1: -\nPilot 2: -"
+autowrap_mode = 2
+theme_override_font_sizes/font_size = 12
+
+[node name="ContinueButton" type="Button" parent="Footer"]
+text = "Continue"
+size_flags_horizontal = 1

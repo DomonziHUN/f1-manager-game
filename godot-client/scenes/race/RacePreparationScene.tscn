@@ -1,229 +1,228 @@
-[gd_scene load_steps=2 format=3 uid="uid://raceprep123"]
+[gd_scene load_steps=2 format=3]
 
-[ext_resource type="Script" path="res://scripts/race/RacePreparationController.gd" id="1_raceprep"]
+[ext_resource type="Script" path="res://scripts/race/RacePreparationController.gd" id="1"]
 
 [node name="RacePreparationScene" type="Control"]
-layout_mode = 3
-anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-script = ExtResource("1_raceprep")
+script = ExtResource("1")
 
 [node name="Background" type="ColorRect" parent="."]
-layout_mode = 1
-anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
-color = Color(0.05, 0.05, 0.1, 1)
+color = Color(0.07, 0.07, 0.11, 1)
 
-[node name="VBoxContainer" type="VBoxContainer" parent="."]
-layout_mode = 1
-anchors_preset = 15
+[node name="Header" type="VBoxContainer" parent="."]
 anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 50.0
-offset_top = 50.0
-offset_right = -50.0
-offset_bottom = -50.0
+anchor_bottom = 0.18
+alignment = 1
+theme_override_constants/separation = 4
 
-[node name="Header" type="Panel" parent="VBoxContainer"]
-layout_mode = 2
-custom_minimum_size = Vector2(0, 120)
-
-[node name="HeaderContent" type="VBoxContainer" parent="VBoxContainer/Header"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 20.0
-offset_top = 20.0
-offset_right = -20.0
-offset_bottom = -20.0
-
-[node name="Title" type="Label" parent="VBoxContainer/Header/HeaderContent"]
-layout_mode = 2
+[node name="TitleLabel" type="Label" parent="Header"]
 text = "🏁 Race Preparation"
 horizontal_alignment = 1
+theme_override_font_sizes/font_size = 18
 
-[node name="TrackInfo" type="Label" parent="VBoxContainer/Header/HeaderContent"]
-layout_mode = 2
-text = "Track: Spa-Francorchamps (12 laps)"
+[node name="TrackLabel" type="Label" parent="Header"]
+text = "Track: -"
 horizontal_alignment = 1
+theme_override_font_sizes/font_size = 14
+modulate = Color(0.8, 0.8, 0.9, 1)
 
-[node name="WeatherInfo" type="Label" parent="VBoxContainer/Header/HeaderContent"]
-layout_mode = 2
-text = "☀️ Weather: Dry"
+[node name="WeatherLabel" type="Label" parent="Header"]
+text = "☀️ Weather: -"
 horizontal_alignment = 1
+theme_override_font_sizes/font_size = 14
 
-[node name="TimerLabel" type="Label" parent="VBoxContainer/Header/HeaderContent"]
-layout_mode = 2
-text = "Time remaining: 30s"
+[node name="TimeLabel" type="Label" parent="Header"]
+text = "Time remaining: 00:30"
 horizontal_alignment = 1
+theme_override_font_sizes/font_size = 12
+modulate = Color(0.8, 0.8, 0.9, 1)
 
-[node name="HSeparator" type="HSeparator" parent="VBoxContainer"]
-layout_mode = 2
+[node name="Main" type="HBoxContainer" parent="."]
+anchor_top = 0.18
+anchor_right = 1.0
+anchor_bottom = 0.82
+theme_override_constants/separation = 24
 
-[node name="MainContent" type="HBoxContainer" parent="VBoxContainer"]
-layout_mode = 2
-size_flags_vertical = 3
-
-[node name="LeftPanel" type="VBoxContainer" parent="VBoxContainer/MainContent"]
-layout_mode = 2
+; ========== LEFT PANEL: DRIVERS ==========
+[node name="LeftPanel" type="PanelContainer" parent="Main"]
 size_flags_horizontal = 3
 
-[node name="TireSelection" type="Panel" parent="VBoxContainer/MainContent/LeftPanel"]
-layout_mode = 2
-custom_minimum_size = Vector2(0, 400)
-
-[node name="TireContent" type="VBoxContainer" parent="VBoxContainer/MainContent/LeftPanel/TireSelection"]
-layout_mode = 1
-anchors_preset = 15
+[node name="Margin" type="MarginContainer" parent="Main/LeftPanel"]
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 20.0
-offset_top = 20.0
-offset_right = -20.0
-offset_bottom = -20.0
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
 
-[node name="TireTitle" type="Label" parent="VBoxContainer/MainContent/LeftPanel/TireSelection/TireContent"]
-layout_mode = 2
-text = "🛞 Starting Tire Compound"
+[node name="LeftContent" type="VBoxContainer" parent="Main/LeftPanel/Margin"]
+theme_override_constants/separation = 8
 
-[node name="DryTires" type="VBoxContainer" parent="VBoxContainer/MainContent/LeftPanel/TireSelection/TireContent"]
-layout_mode = 2
+[node name="DriversTitle" type="Label" parent="Main/LeftPanel/Margin/LeftContent"]
+text = "Your Drivers"
+theme_override_font_sizes/font_size = 14
 
-[node name="DryLabel" type="Label" parent="VBoxContainer/MainContent/LeftPanel/TireSelection/TireContent/DryTires"]
-layout_mode = 2
-text = "☀️ Dry Weather Tires:"
-
-[node name="SoftTire" type="Button" parent="VBoxContainer/MainContent/LeftPanel/TireSelection/TireContent/DryTires"]
-layout_mode = 2
-text = "🔴 Soft (Fastest, High Wear)"
+[node name="Pilot1Card" type="Button" parent="Main/LeftPanel/Margin/LeftContent"]
 toggle_mode = true
+flat = true
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(220, 80)
 
-[node name="MediumTire" type="Button" parent="VBoxContainer/MainContent/LeftPanel/TireSelection/TireContent/DryTires"]
-layout_mode = 2
-text = "🟡 Medium (Balanced)"
+[node name="Pilot1VBox" type="VBoxContainer" parent="Main/LeftPanel/Margin/LeftContent/Pilot1Card"]
+theme_override_constants/separation = 2
+
+[node name="PilotName" type="Label" parent="Main/LeftPanel/Margin/LeftContent/Pilot1Card/Pilot1VBox"]
+text = "Pilot 1"
+theme_override_font_sizes/font_size = 14
+
+[node name="PilotTeam" type="Label" parent="Main/LeftPanel/Margin/LeftContent/Pilot1Card/Pilot1VBox"]
+text = "Team"
+theme_override_font_sizes/font_size = 11
+modulate = Color(0.8, 0.8, 0.9, 1)
+
+[node name="PilotStats" type="Label" parent="Main/LeftPanel/Margin/LeftContent/Pilot1Card/Pilot1VBox"]
+text = "Pace: -  Tire: -  Wet: -"
+theme_override_font_sizes/font_size = 11
+
+[node name="PilotTyre" type="Label" parent="Main/LeftPanel/Margin/LeftContent/Pilot1Card/Pilot1VBox"]
+text = "Tyre: -"
+theme_override_font_sizes/font_size = 11
+
+[node name="Pilot2Card" type="Button" parent="Main/LeftPanel/Margin/LeftContent"]
 toggle_mode = true
+flat = true
+size_flags_horizontal = 3
+custom_minimum_size = Vector2(220, 80)
 
-[node name="HardTire" type="Button" parent="VBoxContainer/MainContent/LeftPanel/TireSelection/TireContent/DryTires"]
-layout_mode = 2
-text = "⚪ Hard (Slowest, Low Wear)"
-toggle_mode = true
+[node name="Pilot2VBox" type="VBoxContainer" parent="Main/LeftPanel/Margin/LeftContent/Pilot2Card"]
+theme_override_constants/separation = 2
 
-[node name="HSeparator4" type="HSeparator" parent="VBoxContainer/MainContent/LeftPanel/TireSelection/TireContent"]
-layout_mode = 2
+[node name="PilotName" type="Label" parent="Main/LeftPanel/Margin/LeftContent/Pilot2Card/Pilot2VBox"]
+text = "Pilot 2"
+theme_override_font_sizes/font_size = 14
 
-[node name="WetTires" type="VBoxContainer" parent="VBoxContainer/MainContent/LeftPanel/TireSelection/TireContent"]
-layout_mode = 2
+[node name="PilotTeam" type="Label" parent="Main/LeftPanel/Margin/LeftContent/Pilot2Card/Pilot2VBox"]
+text = "Team"
+theme_override_font_sizes/font_size = 11
+modulate = Color(0.8, 0.8, 0.9, 1)
 
-[node name="WetLabel" type="Label" parent="VBoxContainer/MainContent/LeftPanel/TireSelection/TireContent/WetTires"]
-layout_mode = 2
-text = "🌧️ Wet Weather Tires:"
+[node name="PilotStats" type="Label" parent="Main/LeftPanel/Margin/LeftContent/Pilot2Card/Pilot2VBox"]
+text = "Pace: -  Tire: -  Wet: -"
+theme_override_font_sizes/font_size = 11
 
-[node name="InterTire" type="Button" parent="VBoxContainer/MainContent/LeftPanel/TireSelection/TireContent/WetTires"]
-layout_mode = 2
-text = "🟢 Intermediate (Light Rain)"
-toggle_mode = true
+[node name="PilotTyre" type="Label" parent="Main/LeftPanel/Margin/LeftContent/Pilot2Card/Pilot2VBox"]
+text = "Tyre: -"
+theme_override_font_sizes/font_size = 11
 
-[node name="WetTire" type="Button" parent="VBoxContainer/MainContent/LeftPanel/TireSelection/TireContent/WetTires"]
-layout_mode = 2
-text = "🔵 Full Wet (Heavy Rain)"
-toggle_mode = true
+; ========== CENTER PANEL: TYRES ==========
+[node name="CenterPanel" type="PanelContainer" parent="Main"]
+size_flags_horizontal = 4
 
-[node name="TireInfo" type="Label" parent="VBoxContainer/MainContent/LeftPanel/TireSelection/TireContent"]
-layout_mode = 2
-text = "Select your starting tire compound based on weather conditions"
+[node name="Margin" type="MarginContainer" parent="Main/CenterPanel"]
+anchor_right = 1.0
+anchor_bottom = 1.0
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
 
-[node name="VSeparator" type="VSeparator" parent="VBoxContainer/MainContent"]
-layout_mode = 2
+[node name="CenterContent" type="VBoxContainer" parent="Main/CenterPanel/Margin"]
+theme_override_constants/separation = 6
 
-[node name="RightPanel" type="VBoxContainer" parent="VBoxContainer/MainContent"]
-layout_mode = 2
+[node name="TyreTitle" type="Label" parent="Main/CenterPanel/Margin/CenterContent"]
+text = "Starting tyre for: -"
+theme_override_font_sizes/font_size = 14
+
+[node name="DryTitle" type="Label" parent="Main/CenterPanel/Margin/CenterContent"]
+text = "☀️ Dry Weather Tyres"
+theme_override_font_sizes/font_size = 12
+
+[node name="DryButtons" type="HBoxContainer" parent="Main/CenterPanel/Margin/CenterContent"]
+theme_override_constants/separation = 6
+
+[node name="SoftButton" type="Button" parent="Main/CenterPanel/Margin/CenterContent/DryButtons"]
+text = "🔴 Soft"
+theme_override_font_sizes/font_size = 12
+
+[node name="MediumButton" type="Button" parent="Main/CenterPanel/Margin/CenterContent/DryButtons"]
+text = "🟡 Medium"
+theme_override_font_sizes/font_size = 12
+
+[node name="HardButton" type="Button" parent="Main/CenterPanel/Margin/CenterContent/DryButtons"]
+text = "⚪ Hard"
+theme_override_font_sizes/font_size = 12
+
+[node name="WetTitle" type="Label" parent="Main/CenterPanel/Margin/CenterContent"]
+text = "🌧️ Wet Weather Tyres"
+theme_override_font_sizes/font_size = 12
+
+[node name="WetButtons" type="HBoxContainer" parent="Main/CenterPanel/Margin/CenterContent"]
+theme_override_constants/separation = 6
+
+[node name="InterButton" type="Button" parent="Main/CenterPanel/Margin/CenterContent/WetButtons"]
+text = "🟢 Inter"
+theme_override_font_sizes/font_size = 12
+
+[node name="WetButton" type="Button" parent="Main/CenterPanel/Margin/CenterContent/WetButtons"]
+text = "🔵 Wet"
+theme_override_font_sizes/font_size = 12
+
+[node name="TyreInfo" type="Label" parent="Main/CenterPanel/Margin/CenterContent"]
+text = "Select a tyre to see details."
+autowrap_mode = 2
+theme_override_font_sizes/font_size = 11
+
+; ========== RIGHT PANEL: OPPONENT ==========
+[node name="RightPanel" type="PanelContainer" parent="Main"]
 size_flags_horizontal = 3
 
-[node name="OpponentInfo" type="Panel" parent="VBoxContainer/MainContent/RightPanel"]
-layout_mode = 2
-custom_minimum_size = Vector2(0, 150)
-
-[node name="OpponentContent" type="VBoxContainer" parent="VBoxContainer/MainContent/RightPanel/OpponentInfo"]
-layout_mode = 1
-anchors_preset = 15
+[node name="Margin" type="MarginContainer" parent="Main/RightPanel"]
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 20.0
-offset_top = 20.0
-offset_right = -20.0
-offset_bottom = -20.0
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
 
-[node name="OpponentTitle" type="Label" parent="VBoxContainer/MainContent/RightPanel/OpponentInfo/OpponentContent"]
-layout_mode = 2
-text = "👥 Opponent"
+[node name="RightContent" type="VBoxContainer" parent="Main/RightPanel/Margin"]
+theme_override_constants/separation = 4
 
-[node name="OpponentName" type="Label" parent="VBoxContainer/MainContent/RightPanel/OpponentInfo/OpponentContent"]
-layout_mode = 2
-text = "Player2"
+[node name="OpponentTitle" type="Label" parent="Main/RightPanel/Margin/RightContent"]
+text = "Opponent"
+theme_override_font_sizes/font_size = 14
 
-[node name="OpponentLeague" type="Label" parent="VBoxContainer/MainContent/RightPanel/OpponentInfo/OpponentContent"]
-layout_mode = 2
-text = "Bronze League"
+[node name="OpponentName" type="Label" parent="Main/RightPanel/Margin/RightContent"]
+text = "Name"
+theme_override_font_sizes/font_size = 12
 
-[node name="OpponentStatus" type="Label" parent="VBoxContainer/MainContent/RightPanel/OpponentInfo/OpponentContent"]
-layout_mode = 2
-text = "⏳ Preparing..."
+[node name="OpponentLeague" type="Label" parent="Main/RightPanel/Margin/RightContent"]
+text = "League -"
+theme_override_font_sizes/font_size = 12
 
-[node name="HSeparator2" type="HSeparator" parent="VBoxContainer/MainContent/RightPanel"]
-layout_mode = 2
+[node name="OpponentStatus" type="Label" parent="Main/RightPanel/Margin/RightContent"]
+text = "Preparing..."
+theme_override_font_sizes/font_size = 12
 
-[node name="PilotInfo" type="Panel" parent="VBoxContainer/MainContent/RightPanel"]
-layout_mode = 2
-custom_minimum_size = Vector2(0, 200)
-
-[node name="PilotContent" type="VBoxContainer" parent="VBoxContainer/MainContent/RightPanel/PilotInfo"]
-layout_mode = 1
-anchors_preset = 15
+; ========== FOOTER ==========
+[node name="Footer" type="HBoxContainer" parent="."]
+anchor_top = 0.82
 anchor_right = 1.0
 anchor_bottom = 1.0
-offset_left = 20.0
-offset_top = 20.0
-offset_right = -20.0
-offset_bottom = -20.0
+theme_override_constants/separation = 16
 
-[node name="PilotTitle" type="Label" parent="VBoxContainer/MainContent/RightPanel/PilotInfo/PilotContent"]
-layout_mode = 2
-text = "👨‍✈️ Your Pilots"
+[node name="StatusLabel" type="Label" parent="Footer"]
+size_flags_horizontal = 3
+text = "Select tyres for both drivers."
+theme_override_font_sizes/font_size = 12
 
-[node name="Pilot1Info" type="Label" parent="VBoxContainer/MainContent/RightPanel/PilotInfo/PilotContent"]
-layout_mode = 2
-text = "Pilot 1: Loading..."
-
-[node name="Pilot2Info" type="Label" parent="VBoxContainer/MainContent/RightPanel/PilotInfo/PilotContent"]
-layout_mode = 2
-text = "Pilot 2: Loading..."
-
-[node name="HSeparator3" type="HSeparator" parent="VBoxContainer"]
-layout_mode = 2
-
-[node name="BottomPanel" type="Panel" parent="VBoxContainer"]
-layout_mode = 2
-custom_minimum_size = Vector2(0, 80)
-
-[node name="BottomContent" type="HBoxContainer" parent="VBoxContainer/BottomPanel"]
-layout_mode = 1
-anchors_preset = 15
-anchor_right = 1.0
-anchor_bottom = 1.0
-offset_left = 20.0
-offset_top = 20.0
-offset_right = -20.0
-offset_bottom = -20.0
-
-[node name="StatusLabel" type="Label" parent="VBoxContainer/BottomPanel/BottomContent"]
-layout_mode = 2
-text = "Select your tire compound based on weather"
+[node name="FooterSpacer" type="Control" parent="Footer"]
 size_flags_horizontal = 3
 
-[node name="ReadyButton" type="Button" parent="VBoxContainer/BottomPanel/BottomContent"]
-layout_mode = 2
-text = "Ready!"
+[node name="ReadyButton" type="Button" parent="Footer"]
+text = "Ready"
+size_flags_horizontal = 1
 disabled = true
+theme_override_font_sizes/font_size = 14

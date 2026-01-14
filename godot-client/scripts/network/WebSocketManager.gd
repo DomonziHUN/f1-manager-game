@@ -1,32 +1,29 @@
 extends Node
 
-# WebSocket connection
 var websocket: WebSocketPeer
-var websocket_url: String = "ws://localhost:3000"
-var is_connected: bool = false
-var is_authenticated: bool = false
-var connection_timeout: float = 10.0
-var connection_timer: float = 0.0
+var websocket_url = "ws://localhost:3000"
+var is_connected = false
+var is_authenticated = false
+var connection_timeout = 10.0
+var connection_timer = 0.0
 
-# Reconnection
 var reconnect_timer: Timer
-var reconnect_attempts: int = 0
-var max_reconnect_attempts: int = 5
+var reconnect_attempts = 0
+var max_reconnect_attempts = 5
 
-# Signals
 signal connected()
 signal disconnected()
 signal authenticated(user_data: Dictionary)
 signal auth_error(error: String)
 
-# Matchmaking signals
+# Matchmaking
 signal queue_joined(data: Dictionary)
 signal queue_left()
 signal queue_error(error: String)
 signal queue_update(data: Dictionary)
 signal match_found(data: Dictionary)
 
-# Race / quali signals
+# Race / quali
 signal race_preparation_update(data: Dictionary)
 signal qualifying_start(data: Dictionary)
 signal weather_update(data: Dictionary)
@@ -35,35 +32,27 @@ signal race_update(data: Dictionary)
 signal race_finished(data: Dictionary)
 signal qualifying_results(data: Dictionary)
 
-func _ready() -> void:
+func _ready():
 	print("🔌 WebSocketManager initialized")
 	reconnect_timer = Timer.new()
 	reconnect_timer.wait_time = 3.0
-	reconnect_timer.one_shot = true
 	reconnect_timer.timeout.connect(_attempt_reconnect)
 	add_child(reconnect_timer)
 
-# ==========================
-# CONNECTION / AUTH
-# ==========================
-
-func connect_to_server() -> void:
+func connect_to_server():
 	if is_connected:
 		print("⚠️ Already connected to WebSocket")
 		return
-	
 	print("🔌 Connecting to WebSocket: " + websocket_url)
 	websocket = WebSocketPeer.new()
-	var error: int = websocket.connect_to_url(websocket_url)
+	var error = websocket.connect_to_url(websocket_url)
 	if error != OK:
 		print("❌ Failed to initiate WebSocket connection: " + str(error))
 		_handle_connection_error()
 		return
-	
 	connection_timer = 0.0
-	print("⏳ WebSocket connection initiated, waiting for response...")
 
-func disconnect_from_server() -> void:
+func disconnect_from_server():
 	if websocket:
 		websocket.close()
 	is_connected = false
@@ -72,112 +61,79 @@ func disconnect_from_server() -> void:
 	print("🔌 Disconnected from WebSocket")
 	disconnected.emit()
 
-func authenticate(token: String) -> void:
+func authenticate(token: String):
 	if not is_connected:
 		print("❌ Cannot authenticate: not connected")
 		return
-	
 	print("🔐 Sending authentication...")
-	var auth_message := {
+	var auth_message = {
 		"event": "authenticate",
 		"data": {"token": token}
 	}
 	websocket.send_text(JSON.stringify(auth_message))
 
-# ==========================
-# MATCHMAKING HELPERS
-# ==========================
-
-func join_queue() -> void:
+# =============== MATCHMAKING ===============
+func join_queue():
 	if not is_authenticated:
 		print("❌ Cannot join queue: not authenticated")
 		return
-	print("🎮 Joining matchmaking queue...")
 	_send_message("join_queue", {})
 
-func leave_queue() -> void:
+func leave_queue():
 	if not is_authenticated:
 		print("❌ Cannot leave queue: not authenticated")
 		return
-	print("🚪 Leaving matchmaking queue...")
 	_send_message("leave_queue", {})
 
-func find_match() -> void:
+func find_match():
 	if not is_authenticated:
 		print("❌ Cannot find match: not authenticated")
 		return
-	print("🔍 Requesting match search...")
 	_send_message("find_match", {})
 
-# ==========================
-# RACE / QUALI HELPERS
-# ==========================
-
-func send_race_preparation(data: Dictionary) -> void:
+# =============== RACE / QUALI ===============
+func send_race_preparation(data: Dictionary):
 	if not is_authenticated:
 		print("❌ Cannot send race preparation: not authenticated")
 		return
-	
 	print("🏁 Sending race preparation: " + str(data))
 	_send_message("race_preparation", data)
 
-func request_qualifying_results(match_id: String) -> void:
+func request_qualifying_results(match_id: String):
 	if not is_authenticated:
 		print("❌ Cannot request qualifying results: not authenticated")
 		return
-	
 	print("🏁 Requesting qualifying results for match: " + match_id)
 	_send_message("request_qualifying_results", {"matchId": match_id})
 
-func send_qualifying_ready() -> void:
-	if not is_authenticated:
-		print("❌ Cannot send qualifying ready: not authenticated")
-		return
-	print("🏁 Sending qualifying ready...")
-	_send_message("qualifying_ready", {})
+func _process(delta):
+	if websocket:
+		websocket.poll()
+		var state = websocket.get_ready_state()
 
-# ==========================
-# MAIN PROCESS LOOP
-# ==========================
+		match state:
+			WebSocketPeer.STATE_CONNECTING:
+				connection_timer += delta
+				if connection_timer > connection_timeout:
+					print("❌ WebSocket connection timeout")
+					_handle_connection_error()
+					return
+			WebSocketPeer.STATE_OPEN:
+				if not is_connected:
+					_handle_connection_success()
+				while websocket.get_available_packet_count():
+					var packet = websocket.get_packet()
+					var message_text = packet.get_string_from_utf8()
+					print("📥 Raw message: " + message_text)
+					_handle_message(message_text)
+			WebSocketPeer.STATE_CLOSING:
+				pass
+			WebSocketPeer.STATE_CLOSED:
+				if is_connected:
+					print("❌ WebSocket closed")
+					_handle_connection_lost()
 
-func _process(delta: float) -> void:
-	if websocket == null:
-		return
-	
-	websocket.poll()
-	var state: int = websocket.get_ready_state()
-	
-	match state:
-		WebSocketPeer.STATE_CONNECTING:
-			connection_timer += delta
-			if connection_timer > connection_timeout:
-				print("❌ WebSocket connection timeout after " + str(connection_timeout) + " seconds")
-				_handle_connection_error()
-				return
-			
-		WebSocketPeer.STATE_OPEN:
-			if not is_connected:
-				_handle_connection_success()
-			
-			while websocket.get_available_packet_count() > 0:
-				var packet: PackedByteArray = websocket.get_packet()
-				var message_text: String = packet.get_string_from_utf8()
-				print("📥 Raw message: " + message_text)
-				_handle_message(message_text)
-			
-		WebSocketPeer.STATE_CLOSING:
-			pass
-			
-		WebSocketPeer.STATE_CLOSED:
-			if is_connected:
-				print("❌ WebSocket closed")
-				_handle_connection_lost()
-
-# ==========================
-# CONNECTION HANDLERS
-# ==========================
-
-func _handle_connection_success() -> void:
+func _handle_connection_success():
 	is_connected = true
 	reconnect_attempts = 0
 	reconnect_timer.stop()
@@ -185,14 +141,14 @@ func _handle_connection_success() -> void:
 	print("✅ WebSocket connected successfully!")
 	connected.emit()
 
-func _handle_connection_lost() -> void:
+func _handle_connection_lost():
 	is_connected = false
 	is_authenticated = false
 	print("❌ WebSocket connection lost")
 	disconnected.emit()
 	_attempt_reconnect()
 
-func _handle_connection_error() -> void:
+func _handle_connection_error():
 	print("❌ WebSocket connection error")
 	if websocket:
 		websocket.close()
@@ -200,136 +156,103 @@ func _handle_connection_error() -> void:
 	is_authenticated = false
 	_attempt_reconnect()
 
-func _attempt_reconnect() -> void:
+func _attempt_reconnect():
 	if reconnect_attempts >= max_reconnect_attempts:
 		print("❌ Max reconnection attempts reached")
 		return
-	
 	reconnect_attempts += 1
 	print("🔄 Attempting to reconnect... (" + str(reconnect_attempts) + "/" + str(max_reconnect_attempts) + ")")
-	
 	if websocket:
 		websocket.close()
-	
 	reconnect_timer.start()
 
-# ==========================
-# LOW-LEVEL SEND / RECEIVE
-# ==========================
-
-func _send_message(ev: String, data: Dictionary) -> void:
+func _send_message(event: String, data: Dictionary):
 	if not is_connected:
 		print("❌ Cannot send message: not connected")
 		return
-	
-	var message := {
-		"event": ev,
-		"data": data
-	}
-	var json_string: String = JSON.stringify(message)
-	websocket.send_text(json_string)
-	print("📤 Sent: " + ev)
+	var message = { "event": event, "data": data }
+	websocket.send_text(JSON.stringify(message))
+	print("📤 Sent: " + event)
 
-func _handle_message(message_text: String) -> void:
-	var json := JSON.new()
-	var parse_result: int = json.parse(message_text)
-	
+func _handle_message(message_text: String):
+	var json = JSON.new()
+	var parse_result = json.parse(message_text)
 	if parse_result != OK:
 		print("❌ Failed to parse JSON: " + message_text)
 		return
-	
-	var data: Dictionary = json.data
+	var data = json.data
 	print("📨 Parsed data: " + str(data))
-	
+
 	if data.has("event"):
-		var ev: String = str(data.get("event", ""))
-		var payload: Dictionary = data.get("data", {})
-		_handle_event(ev, payload)
+		var event = data.get("event", "")
+		var payload = data.get("data", {})
+		_handle_event(event, payload)
 	elif data.has("success"):
 		if data.success:
 			is_authenticated = true
-			print("✅ Authentication successful (legacy format)")
 			authenticated.emit(data)
 		else:
-			var err: String = str(data.get("error", "Unknown error"))
-			print("❌ Authentication failed: " + err)
-			auth_error.emit(err)
+			auth_error.emit(str(data.get("error", "Unknown error")))
 	else:
 		print("⚠️ Unknown message format: " + str(data))
 
-# ==========================
-# EVENT DISPATCH
-# ==========================
-
-func _handle_event(ev: String, payload: Dictionary) -> void:
-	match ev:
+func _handle_event(event: String, payload: Dictionary):
+	match event:
 		"welcome":
 			print("💬 Server welcome: " + str(payload.get("message", "")))
-		
+
 		"error":
-			var err: String = str(payload.get("error", "Unknown error"))
+			var err = payload.get("error", "Unknown error")
 			print("❌ Server error: " + err)
 			queue_error.emit(err)
-		
+
 		"authenticated":
 			is_authenticated = true
 			print("✅ WebSocket authentication successful")
 			authenticated.emit(payload)
-		
+
 		"auth_error":
 			is_authenticated = false
-			var er: String = str(payload.get("error", "Unknown auth error"))
+			var er = payload.get("error", "Unknown auth error")
 			print("❌ WebSocket authentication failed: " + er)
 			auth_error.emit(er)
-		
+
 		"queue_joined":
-			print("✅ Joined matchmaking queue")
 			queue_joined.emit(payload)
-		
+
 		"queue_left":
-			print("✅ Left matchmaking queue")
 			queue_left.emit()
-		
+
 		"queue_error":
-			var qerr: String = str(payload.get("error", "Unknown queue error"))
-			print("❌ Queue error: " + qerr)
-			queue_error.emit(qerr)
-		
+			queue_error.emit(payload.get("error", "Unknown queue error"))
+
 		"queue_update":
-			print("📊 Queue update: " + str(payload))
 			queue_update.emit(payload)
-		
+
 		"match_found":
-			print("🎉 Match found!")
 			match_found.emit(payload)
-		
+
 		"race_preparation_update":
-			print("🏁 Race preparation update: " + str(payload))
 			race_preparation_update.emit(payload)
-		
+
 		"qualifying_start":
-			print("🏁 Qualifying starting: " + str(payload))
 			qualifying_start.emit(payload)
-		
+
 		"weather_update":
-			print("🌤️ Weather update: " + str(payload))
 			weather_update.emit(payload)
-		
+
 		"race_start":
-			print("🏁 Race starting: " + str(payload))
 			race_start.emit(payload)
-		
+
 		"race_update":
-			print("🏎️ Race update: " + str(payload))
 			race_update.emit(payload)
-		
+
 		"race_finished":
-			print("🏆 Race finished: " + str(payload))
 			race_finished.emit(payload)
-		
+
 		"qualifying_results":
 			print("🏁 Qualifying results received")
 			qualifying_results.emit(payload)
-		
+
 		_:
-			print("⚠️ Unknown WebSocket event: " + ev)
+			print("⚠️ Unknown WebSocket event: " + event) 
